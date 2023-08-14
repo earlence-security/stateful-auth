@@ -1,4 +1,5 @@
 import time
+import flask
 from flask import Blueprint, request, session, url_for
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
@@ -58,7 +59,10 @@ def create_client():
     if not user:
         return redirect('/')
     if request.method == 'GET':
+        # TODO: Add `policy program` section in the form
         return render_template('create_client.html')
+
+    # TODO: Check whether policies are malicious
 
     client_id = gen_salt(24)
     client_id_issued_at = int(time.time())
@@ -69,6 +73,7 @@ def create_client():
     )
 
     form = request.form
+    # This `client_metadata` is stored as json in db.Client model.
     client_metadata = {
         "client_name": form["client_name"],
         "client_uri": form["client_uri"],
@@ -77,6 +82,8 @@ def create_client():
         "response_types": split_by_crlf(form["response_type"]),
         "scope": form["scope"],
         "token_endpoint_auth_method": form["token_endpoint_auth_method"]
+        # TODO: Save stateless policy in DB
+        # "policy_hash": hash(form["policy"]),
     }
     client.set_client_metadata(client_metadata)
 
@@ -89,7 +96,7 @@ def create_client():
     db.session.commit()
     return redirect('/')
 
-
+# TODO: Check if policy is recorded.
 @bp.route('/oauth/authorize', methods=['GET', 'POST'])
 def authorize():
     user = current_user()
@@ -97,6 +104,19 @@ def authorize():
     if not user:
         return redirect(url_for('home.home', next=request.url))
     if request.method == 'GET':
+        # TODO: Check if policy is recorded.
+        # -------------------------------------
+        # try:
+        #     client_id = request.args.get("client_id")
+        #     policy = request.args.get("policy")
+        # except ValueError as error:
+        #     return error.error
+        # client = OAuth2Client.query.filter_by(client_id=client_id).first()
+        # if not client.client_metadata()["policy_hash"] == hash(policy):
+        #     # Abort with 400 Bad Request if policy is unregistered
+        #     flask.abort(400)
+        # -------------------------------------
+        # QA: Maybe the above code can be decorator of `AuthorizationServer.get_consent_grant`?
         try:
             grant = authorization.get_consent_grant(end_user=user)
         except OAuth2Error as error:
@@ -114,6 +134,11 @@ def authorize():
 
 @bp.route('/oauth/token', methods=['POST'])
 def issue_token():
+    # NOTE: `token` is generated in AuthorizationCodeGrant.create_token_response.
+    # See https://github.com/lepture/authlib/blob/master/authlib/oauth2/rfc6749/grants/authorization_code.py#L238C30-L238C30.
+    # QA: Each OAuth2Token object will have its `client_id`. Do we still want `(token, H(policy))`?
+    # Isn't it a duplicate of the recorded `(client_id, H(policy))`? We can do a simple query on `OAuth2Client`
+    # with this `client_id` and get the policy hash.
     return authorization.create_token_response()
 
 
@@ -121,7 +146,8 @@ def issue_token():
 def revoke_token():
     return authorization.create_endpoint_response('revocation')
 
-
+# TODO: ResourceProtector.acquire_token. 
+# See https://github.com/lepture/authlib/blob/master/authlib/integrations/flask_oauth2/resource_protector.py
 @bp.route('/api/me')
 @require_oauth('profile')
 def api_me():

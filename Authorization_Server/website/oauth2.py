@@ -50,12 +50,13 @@ class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
     def authenticate_user(self, authorization_code):
         return User.query.get(authorization_code.user_id)
 
-
-class PasswordGrant(grants.ResourceOwnerPasswordCredentialsGrant):
-    def authenticate_user(self, username, password):
-        user = User.query.filter_by(username=username).first()
-        if user is not None and user.check_password(password):
-            return user
+# NOTE: `PasswordGrant` should only be used when the client is trustworthy.
+# So, we disable it here.
+# class PasswordGrant(grants.ResourceOwnerPasswordCredentialsGrant):
+#     def authenticate_user(self, username, password):
+#         user = User.query.filter_by(username=username).first()
+#         if user is not None and user.check_password(password):
+#             return user
 
 
 class RefreshTokenGrant(grants.RefreshTokenGrant):
@@ -89,7 +90,7 @@ def config_oauth(app):
     authorization.register_grant(grants.ImplicitGrant)
     authorization.register_grant(grants.ClientCredentialsGrant)
     authorization.register_grant(AuthorizationCodeGrant, [CodeChallenge(required=True)])
-    authorization.register_grant(PasswordGrant)
+    # authorization.register_grant(PasswordGrant)
     authorization.register_grant(RefreshTokenGrant)
 
     # support revocation
