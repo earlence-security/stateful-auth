@@ -1,7 +1,15 @@
+import os
+import sys
 from flask import Flask, url_for, session
 from flask import render_template, redirect
-from authlib.integrations.flask_client import OAuth
 
+# add the auth-lib in our directory as path
+parent_dir = os.path.abspath(os.path.dirname(__file__))
+parent_dir = os.path.abspath(os.path.join(parent_dir, os.pardir))
+auth_lib_dir = os.path.join(parent_dir, 'auth-lib')
+sys.path.append(auth_lib_dir)
+
+from authlib.integrations.flask_client import OAuth
 
 app = Flask(__name__)
 app.secret_key = 'secret'

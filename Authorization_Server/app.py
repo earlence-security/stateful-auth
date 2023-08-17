@@ -1,3 +1,11 @@
+import os
+import sys
+# add the auth-lib in our directory as path
+parent_dir = os.path.abspath(os.path.dirname(__file__))
+parent_dir = os.path.abspath(os.path.join(parent_dir, os.pardir))
+auth_lib_dir = os.path.join(parent_dir, 'auth-lib')
+sys.path.append(auth_lib_dir)
+
 from website.app import create_app
 
 
