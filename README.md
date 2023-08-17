@@ -1,5 +1,11 @@
 # stateful-auth
 
+Uninstall Authlib if you have it installed
+
+```
+pip uninstall Authlib
+```
+
 Install required libraries
 
 ```
