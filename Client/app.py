@@ -1,6 +1,6 @@
 import os
 import sys
-from flask import Flask, url_for, session
+from flask import Flask, url_for, session, request
 from flask import render_template, redirect
 
 # add the auth-lib in our directory as path
@@ -33,11 +33,16 @@ def homepage():
     return render_template('home.html', token=token)
 
 
-@app.route('/login')
+@app.route('/login', methods=('GET', 'POST'))
 def login():
+    if request.method == 'GET':
+        return render_template('login.html', policy_hashes=app.config['CLIENT_KWARGS'].get("policy_hashes"))
+    
+    selected_option = request.form.get('selected_option')
+    print(selected_option)
     redirect_uri = url_for('auth', _external=True)
     return oauth.testClient.authorize_redirect(redirect_uri, 
-                                               policy_hash=app.config['CLIENT_KWARGS'].get("policy_hash"))
+                                               policy_hash=selected_option)
 
 
 @app.route('/auth')

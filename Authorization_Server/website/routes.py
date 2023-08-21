@@ -142,9 +142,6 @@ def authorize():
 def issue_token():
     # NOTE: `token` is generated in AuthorizationCodeGrant.create_token_response.
     # See https://github.com/lepture/authlib/blob/master/authlib/oauth2/rfc6749/grants/authorization_code.py#L238C30-L238C30.
-    # QA: Each OAuth2Token object will have its `client_id`. Do we still want `(token, H(policy))`?
-    # Isn't it a duplicate of the recorded `(client_id, H(policy))`? We can do a simple query on `OAuth2Client`
-    # with this `client_id` and get the policy hash.
     return authorization.create_token_response()
 
 
