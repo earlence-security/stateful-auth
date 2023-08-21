@@ -24,11 +24,8 @@ oauth.register(
     access_token_params=None,
     authorize_url='http://127.0.0.1:5000/oauth/authorize',
     authorize_params=None,
-    client_kwargs={
-        'scope': 'profile'
-    }
+    client_kwargs=app.config['CLIENT_KWARGS']
 )
-
 
 @app.route('/')
 def homepage():
@@ -39,7 +36,8 @@ def homepage():
 @app.route('/login')
 def login():
     redirect_uri = url_for('auth', _external=True)
-    return oauth.testClient.authorize_redirect(redirect_uri)
+    return oauth.testClient.authorize_redirect(redirect_uri, 
+                                               policy_hash=app.config['CLIENT_KWARGS'].get("policy_hash"))
 
 
 @app.route('/auth')

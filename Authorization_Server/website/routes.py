@@ -62,8 +62,6 @@ def create_client():
         # TODO: Add `policy program` section in the form
         return render_template('create_client.html')
 
-    # TODO: Check whether policies are malicious
-
     client_id = gen_salt(24)
     client_id_issued_at = int(time.time())
     client = OAuth2Client(
@@ -81,9 +79,9 @@ def create_client():
         "redirect_uris": split_by_crlf(form["redirect_uri"]),
         "response_types": split_by_crlf(form["response_type"]),
         "scope": form["scope"],
-        "token_endpoint_auth_method": form["token_endpoint_auth_method"]
+        "token_endpoint_auth_method": form["token_endpoint_auth_method"],
         # TODO: Save stateless policy in DB
-        # "policy_hash": hash(form["policy"]),
+        "policy_hashes": split_by_crlf(form["policy_hashes"])
     }
     client.set_client_metadata(client_metadata)
 
@@ -106,22 +104,30 @@ def authorize():
     if request.method == 'GET':
         # TODO: Check if policy is recorded.
         # -------------------------------------
-        # try:
-        #     client_id = request.args.get("client_id")
-        #     policy = request.args.get("policy")
-        # except ValueError as error:
-        #     return error.error
-        # client = OAuth2Client.query.filter_by(client_id=client_id).first()
-        # if not client.client_metadata()["policy_hash"] == hash(policy):
-        #     # Abort with 400 Bad Request if policy is unregistered
-        #     flask.abort(400)
+        try:
+            client_id = request.args.get("client_id")
+            policy = request.args.get("policy_hash")
+            # TODO
+            # if policy is None:
+                # raise NotStatefulException()
+        # except NotStatefulException as e:
+            # print("An error occurred:", e)
+        except ValueError as error:
+            return error.error
+        
+        client = OAuth2Client.query.filter_by(client_id=client_id).first()
+        if policy not in client.client_metadata.get("policy_hashes"):
+            # Abort with 400 Bad Request if policy is unregistered
+            flask.abort(400)
+
         # -------------------------------------
         # QA: Maybe the above code can be decorator of `AuthorizationServer.get_consent_grant`?
+
         try:
             grant = authorization.get_consent_grant(end_user=user)
         except OAuth2Error as error:
             return error.error
-        return render_template('authorize.html', user=user, grant=grant)
+        return render_template('authorize.html', user=user, grant=grant, policy=policy)
     if not user and 'username' in request.form:
         username = request.form.get('username')
         user = User.query.filter_by(username=username).first()
