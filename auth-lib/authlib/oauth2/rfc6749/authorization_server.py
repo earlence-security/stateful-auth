@@ -35,7 +35,7 @@ class AuthorizationServer(object):
         raise NotImplementedError()
 
     def generate_token(self, grant_type, client, user=None, scope=None,
-                       expires_in=None, include_refresh_token=True):
+                       expires_in=None, include_refresh_token=True, policy=None):
         """Generate the token dict.
 
         :param grant_type: current requested grant_type.
@@ -53,10 +53,10 @@ class AuthorizationServer(object):
             func = self._token_generators.get('default')
         if not func:
             raise RuntimeError('No configured token generator')
-
+        
         return func(
             grant_type=grant_type, client=client, user=user, scope=scope,
-            expires_in=expires_in, include_refresh_token=include_refresh_token)
+            expires_in=expires_in, include_refresh_token=include_refresh_token, policy=policy)
 
     def register_token_generator(self, grant_type, func):
         """Register a function as token generator for the given ``grant_type``.

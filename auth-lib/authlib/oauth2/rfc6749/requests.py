@@ -66,6 +66,11 @@ class OAuth2Request(object):
     @property
     def scope(self) -> str:
         return self.data.get('scope')
+    
+    # get policy from request
+    @property
+    def policy(self) -> str:
+        return self.data.get('policy_hash')
 
     @property
     def state(self):

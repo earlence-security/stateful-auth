@@ -22,6 +22,7 @@ class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
     ]
 
     def save_authorization_code(self, code, request):
+        print(request)
         code_challenge = request.data.get('code_challenge')
         code_challenge_method = request.data.get('code_challenge_method')
         auth_code = OAuth2AuthorizationCode(
@@ -32,6 +33,7 @@ class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
             user_id=request.user.id,
             code_challenge=code_challenge,
             code_challenge_method=code_challenge_method,
+            policy=request.policy
         )
         db.session.add(auth_code)
         db.session.commit()
@@ -82,7 +84,7 @@ authorization = AuthorizationServer(
 )
 require_oauth = ResourceProtector()
 
-
+ 
 def config_oauth(app):
     authorization.init_app(app)
 

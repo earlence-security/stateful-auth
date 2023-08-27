@@ -12,6 +12,8 @@ class OAuth2AuthorizationCodeMixin(AuthorizationCodeMixin):
     redirect_uri = Column(Text, default='')
     response_type = Column(Text, default='')
     scope = Column(Text, default='')
+    # for statefulness
+    policy = Column(String(255))
     nonce = Column(Text)
     auth_time = Column(
         Integer, nullable=False,
@@ -35,6 +37,9 @@ class OAuth2AuthorizationCodeMixin(AuthorizationCodeMixin):
 
     def get_nonce(self):
         return self.nonce
+    
+    def get_policy(self):
+        return self.policy
 
 
 class OAuth2TokenMixin(TokenMixin):
@@ -49,6 +54,8 @@ class OAuth2TokenMixin(TokenMixin):
     access_token_revoked_at = Column(Integer, nullable=False, default=0)
     refresh_token_revoked_at = Column(Integer, nullable=False, default=0)
     expires_in = Column(Integer, nullable=False, default=0)
+    # for statefulness
+    policy = Column(String(255))
 
     def check_client(self, client):
         return self.client_id == client.get_client_id()

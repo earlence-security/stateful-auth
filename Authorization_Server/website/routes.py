@@ -59,7 +59,6 @@ def create_client():
     if not user:
         return redirect('/')
     if request.method == 'GET':
-        # TODO: Add `policy program` section in the form
         return render_template('create_client.html')
 
     client_id = gen_salt(24)
@@ -80,7 +79,7 @@ def create_client():
         "response_types": split_by_crlf(form["response_type"]),
         "scope": form["scope"],
         "token_endpoint_auth_method": form["token_endpoint_auth_method"],
-        # TODO: Save stateless policy in DB
+        # Save stateless policy in DB
         "policy_hashes": split_by_crlf(form["policy_hashes"])
     }
     client.set_client_metadata(client_metadata)
@@ -142,6 +141,7 @@ def authorize():
 def issue_token():
     # NOTE: `token` is generated in AuthorizationCodeGrant.create_token_response.
     # See https://github.com/lepture/authlib/blob/master/authlib/oauth2/rfc6749/grants/authorization_code.py#L238C30-L238C30.
+    # token generates in auth-lib\authlib\oauth2\rfc6749\grants\authorization_code.py
     return authorization.create_token_response()
 
 

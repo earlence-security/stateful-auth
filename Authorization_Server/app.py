@@ -1,6 +1,7 @@
 import os
 import sys
 # add the auth-lib in our directory as path
+# If using VScode, add auth-lib path to python.analysis.extraPaths in Python extension to resolve import
 parent_dir = os.path.abspath(os.path.dirname(__file__))
 parent_dir = os.path.abspath(os.path.join(parent_dir, os.pardir))
 auth_lib_dir = os.path.join(parent_dir, 'auth-lib')
