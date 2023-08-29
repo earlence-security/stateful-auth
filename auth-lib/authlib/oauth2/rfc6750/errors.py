@@ -14,7 +14,7 @@
 from ..base import OAuth2Error
 
 __all__ = [
-    'InvalidTokenError', 'InsufficientScopeError'
+    'InvalidTokenError', 'InsufficientScopeError', 'PolicyFailedError', 'BadPolicyEndpointError'
 ]
 
 
@@ -77,4 +77,18 @@ class InsufficientScopeError(OAuth2Error):
     """
     error = 'insufficient_scope'
     description = 'The request requires higher privileges than provided by the access token.'
+    status_code = 403
+
+class PolicyFailedError(OAuth2Error):
+    """The Policy program returned false
+    """
+    error = 'policy_failed'
+    description = 'The request requires higher privileges than provided by the access token.'
+    status_code = 403
+
+class BadPolicyEndpointError(OAuth2Error):
+    """Could not get the policy from the Policy endpoint
+    """
+    error = 'bad_policy_endpoint'
+    description = 'could not get the policy from the policy endpoint.'
     status_code = 403

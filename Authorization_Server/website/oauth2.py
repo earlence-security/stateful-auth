@@ -7,6 +7,7 @@ from authlib.integrations.sqla_oauth2 import (
     create_save_token_func,
     create_revocation_endpoint,
     create_bearer_token_validator,
+    create_bearer_token_validator_stateful,
 )
 from authlib.oauth2.rfc6749 import grants
 from authlib.oauth2.rfc7636 import CodeChallenge
@@ -22,7 +23,6 @@ class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
     ]
 
     def save_authorization_code(self, code, request):
-        print(request)
         code_challenge = request.data.get('code_challenge')
         code_challenge_method = request.data.get('code_challenge_method')
         auth_code = OAuth2AuthorizationCode(
@@ -84,7 +84,7 @@ authorization = AuthorizationServer(
 )
 require_oauth = ResourceProtector()
 
- 
+
 def config_oauth(app):
     authorization.init_app(app)
 
@@ -101,4 +101,6 @@ def config_oauth(app):
 
     # protect resource
     bearer_cls = create_bearer_token_validator(db.session, OAuth2Token)
-    require_oauth.register_token_validator(bearer_cls())
+    # our stateful validator
+    bearer_cls_stateful = create_bearer_token_validator_stateful(db.session, OAuth2Token, OAuth2Client)
+    require_oauth.register_token_validator(bearer_cls_stateful())

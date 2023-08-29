@@ -37,3 +37,7 @@ class BearerTokenValidator(TokenValidator):
             raise InvalidTokenError(realm=self.realm, extra_attributes=self.extra_attributes)
         if self.scope_insufficient(token.get_scope(), scopes):
             raise InsufficientScopeError()
+        
+    def validate_token_stateful(self, token, scopes, request):
+        """get and run policy program"""
+        raise NotImplementedError()

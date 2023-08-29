@@ -104,6 +104,14 @@ class OAuth2ClientMixin(ClientMixin):
     @property
     def software_version(self):
         return self.client_metadata.get('software_version')
+    
+    @property
+    def policy_hashes(self):
+        return self.client_metadata.get('policy_hashes', [])
+
+    @property
+    def policy_endpoint(self):
+        return self.client_metadata.get('policy_endpoint')
 
     def get_client_id(self):
         return self.client_id

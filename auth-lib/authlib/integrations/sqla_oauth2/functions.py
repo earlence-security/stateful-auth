@@ -1,5 +1,9 @@
 import time
-
+from authlib.oauth2.rfc6750.errors import (
+    PolicyFailedError, BadPolicyEndpointError, 
+)
+import os
+import requests
 
 def create_query_client_func(session, client_model):
     """Create an ``query_client`` function that can be used in authorization
@@ -97,5 +101,34 @@ def create_bearer_token_validator(session, token_model):
         def authenticate_token(self, token_string):
             q = session.query(token_model)
             return q.filter_by(access_token=token_string).first()
+
+    return _BearerTokenValidator
+
+def create_bearer_token_validator_stateful(session, token_model, client_model):
+
+    from authlib.oauth2.rfc6750 import BearerTokenValidator
+
+    class _BearerTokenValidator(BearerTokenValidator):
+        def authenticate_token(self, token_string):
+            q = session.query(token_model)
+            return q.filter_by(access_token=token_string).first()
+        
+        # extra stateful checks 
+        def validate_token_stateful(self, token, scopes, request):
+           
+            q = session.query(client_model)
+            client = q.filter_by(client_id=token.client_id).first()
+
+            policy_url = os.path.join(client.policy_endpoint, token.policy)
+            response = requests.get(policy_url)
+
+            if response.status_code == 200:
+                policy_data = response.content
+            else:
+                raise BadPolicyEndpointError()
+            
+            print(policy_data)
+
+            # TODO: run the policy, accept/deny based on output
 
     return _BearerTokenValidator

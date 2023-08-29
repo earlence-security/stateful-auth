@@ -80,7 +80,9 @@ def create_client():
         "scope": form["scope"],
         "token_endpoint_auth_method": form["token_endpoint_auth_method"],
         # Save stateless policy in DB
-        "policy_hashes": split_by_crlf(form["policy_hashes"])
+        "policy_hashes": split_by_crlf(form["policy_hashes"]),
+        # the endpoint for getting policies
+        "policy_endpoint": form["policy_endpoint"],
     }
     client.set_client_metadata(client_metadata)
 
@@ -114,8 +116,10 @@ def authorize():
         except ValueError as error:
             return error.error
         
+        # TODO handle Null client
         client = OAuth2Client.query.filter_by(client_id=client_id).first()
         if policy not in client.client_metadata.get("policy_hashes"):
+            print(client.client_metadata.get("policy_hashes"))
             # Abort with 400 Bad Request if policy is unregistered
             flask.abort(400)
 

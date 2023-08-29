@@ -1,6 +1,6 @@
 import os
 import sys
-from flask import Flask, url_for, session, request
+from flask import Flask, url_for, session, request, send_file
 from flask import render_template, redirect
 
 # add the auth-lib in our directory as path
@@ -39,7 +39,6 @@ def login():
         return render_template('login.html', policy_hashes=app.config['CLIENT_KWARGS'].get("policy_hashes"))
     
     selected_option = request.form.get('selected_option')
-    print(selected_option)
     redirect_uri = url_for('auth', _external=True)
     return oauth.testClient.authorize_redirect(redirect_uri, 
                                                policy_hash=selected_option)
@@ -58,3 +57,12 @@ def auth():
 def logout():
     session.pop('token', None)
     return redirect('/')
+
+@app.route('/policy/<policy_hash>')
+def send_policy(policy_hash):
+
+    curr_dir = os.path.abspath(os.path.dirname(__file__))
+    auth_lib_dir = os.path.join(curr_dir, 'policies')
+    file_path = os.path.join(auth_lib_dir, policy_hash)
+
+    return send_file(file_path)

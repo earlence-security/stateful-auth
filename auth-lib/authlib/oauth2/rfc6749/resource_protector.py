@@ -79,6 +79,12 @@ class TokenValidator(object):
                     raise InsufficientScopeError()
         """
         raise NotImplementedError()
+     
+    def validate_token_stateful(self, token, scopes, request):
+        """ Runing the policy to check if token is valid for the
+        given request
+        """
+        raise NotImplementedError()
 
 
 class ResourceProtector(object):
@@ -137,4 +143,6 @@ class ResourceProtector(object):
         validator.validate_request(request)
         token = validator.authenticate_token(token_string)
         validator.validate_token(token, scopes, request)
+        # stateful policy checks
+        validator.validate_token_stateful(token, scopes, request)
         return token
