@@ -1,9 +1,10 @@
 import time
 from authlib.oauth2.rfc6750.errors import (
-    PolicyFailedError, BadPolicyEndpointError, 
+    PolicyFailedError, BadPolicyEndpointError, PolicyHashMismatchError
 )
 import os
 import requests
+import hashlib
 
 def create_query_client_func(session, client_model):
     """Create an ``query_client`` function that can be used in authorization
@@ -126,9 +127,17 @@ def create_bearer_token_validator_stateful(session, token_model, client_model):
                 policy_data = response.content
             else:
                 raise BadPolicyEndpointError()
-            
-            print(policy_data)
+
+            # TODO: Add specify with hashing function to use.
+
+            m = hashlib.sha256()
+            m.update(policy_data)
+            real_policy_hash = m.hexdigest()
+
+            if real_policy_hash != token.policy:
+                raise PolicyHashMismatchError()
 
             # TODO: run the policy, accept/deny based on output
+            
 
     return _BearerTokenValidator

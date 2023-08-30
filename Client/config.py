@@ -6,7 +6,7 @@ CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 CLIENT_KWARGS = {
     'scope': 'profile',
-    'policy_hashes': ['a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447', 
-                      'a8009a7a528d87778c356da3a55d964719e818666a04e4f960c9e2439e35f138',
+    'policy_hashes': ['6e6d2741b322902cbdfb1c37d991a80136423d2dad84ca430c3b1edbe05ca6df', 
+                      'e0603155c979d385b4a8c1adc8652677bfdeb486e7402969be9b72db576c5661',
                       'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef']
 }

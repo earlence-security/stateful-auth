@@ -60,6 +60,8 @@ def create_client():
 
     form = request.form
     # This `client_metadata` is stored as json in db.Client model.
+
+    # TODO: Add specify with hashing function to use.
     client_metadata = {
         "client_name": form["client_name"],
         "client_uri": form["client_uri"],

@@ -14,7 +14,8 @@
 from ..base import OAuth2Error
 
 __all__ = [
-    'InvalidTokenError', 'InsufficientScopeError', 'PolicyFailedError', 'BadPolicyEndpointError'
+    'InvalidTokenError', 'InsufficientScopeError', 'PolicyFailedError', 'BadPolicyEndpointError',
+    'PolicyHashMismatchError',
 ]
 
 
@@ -91,4 +92,11 @@ class BadPolicyEndpointError(OAuth2Error):
     """
     error = 'bad_policy_endpoint'
     description = 'could not get the policy from the policy endpoint.'
+    status_code = 403
+
+class PolicyHashMismatchError(OAuth2Error):
+    """policy_hash != hash(policy)
+    """
+    error = 'policy_hash_mismatch'
+    description = 'policy_hash != hash(policy)'
     status_code = 403
