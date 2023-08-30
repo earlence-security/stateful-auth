@@ -3,27 +3,16 @@ import flask
 from flask import Blueprint, request, session, url_for
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
-from authlib.integrations.flask_oauth2 import current_token
 from authlib.oauth2 import OAuth2Error
 from .models import db, User, OAuth2Client
-from .oauth2 import authorization, require_oauth
+from .oauth2 import authorization
+from .utils import current_user, split_by_crlf
 
 
-bp = Blueprint('home', __name__)
+auth_bp = Blueprint('auth', __name__)
 
 
-def current_user():
-    if 'id' in session:
-        uid = session['id']
-        return User.query.get(uid)
-    return None
-
-
-def split_by_crlf(s):
-    return [v for v in s.splitlines() if v]
-
-
-@bp.route('/', methods=('GET', 'POST'))
+@auth_bp.route('/', methods=('GET', 'POST'))
 def home():
     if request.method == 'POST':
         username = request.form.get('username')
@@ -47,13 +36,13 @@ def home():
     return render_template('home.html', user=user, clients=clients)
 
 
-@bp.route('/logout')
+@auth_bp.route('/logout')
 def logout():
     del session['id']
     return redirect('/')
 
 
-@bp.route('/create_client', methods=('GET', 'POST'))
+@auth_bp.route('/create_client', methods=('GET', 'POST'))
 def create_client():
     user = current_user()
     if not user:
@@ -96,7 +85,7 @@ def create_client():
     return redirect('/')
 
 # TODO: Check if policy is recorded.
-@bp.route('/oauth/authorize', methods=['GET', 'POST'])
+@auth_bp.route('/oauth/authorize', methods=['GET', 'POST'])
 def authorize():
     user = current_user()
     # if user log status is not true (Auth server), then to log it in
@@ -141,7 +130,7 @@ def authorize():
     return authorization.create_authorization_response(grant_user=grant_user)
 
 
-@bp.route('/oauth/token', methods=['POST'])
+@auth_bp.route('/oauth/token', methods=['POST'])
 def issue_token():
     # NOTE: `token` is generated in AuthorizationCodeGrant.create_token_response.
     # See https://github.com/lepture/authlib/blob/master/authlib/oauth2/rfc6749/grants/authorization_code.py#L238C30-L238C30.
@@ -149,14 +138,6 @@ def issue_token():
     return authorization.create_token_response()
 
 
-@bp.route('/oauth/revoke', methods=['POST'])
+@auth_bp.route('/oauth/revoke', methods=['POST'])
 def revoke_token():
     return authorization.create_endpoint_response('revocation')
-
-# TODO: ResourceProtector.acquire_token. 
-# See https://github.com/lepture/authlib/blob/master/authlib/integrations/flask_oauth2/resource_protector.py
-@bp.route('/api/me')
-@require_oauth('profile')
-def api_me():
-    user = current_token.user
-    return jsonify(id=user.id, username=user.username)

@@ -39,6 +39,7 @@ class OAuth2AuthorizationCode(db.Model, OAuth2AuthorizationCodeMixin):
     user_id = db.Column(
         db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
     user = db.relationship('User')
+    
 
 
 class OAuth2Token(db.Model, OAuth2TokenMixin):
@@ -54,3 +55,18 @@ class OAuth2Token(db.Model, OAuth2TokenMixin):
             return False
         expires_at = self.issued_at + self.expires_in * 2
         return expires_at >= time.time()
+
+
+######################
+#
+# Resources
+# 
+######################
+class Event(db.Model):
+    id = db.Column(db.Uuid, primary_key=True)
+    # Mark which user this event belongs to
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
+    name = db.Column(db.String(40))
+    description = db.Column(db.String(40))
+    time = db.Column(db.DateTime)
+    location = db.Column(db.String(40))

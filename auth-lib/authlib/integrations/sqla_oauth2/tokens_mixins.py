@@ -12,8 +12,6 @@ class OAuth2AuthorizationCodeMixin(AuthorizationCodeMixin):
     redirect_uri = Column(Text, default='')
     response_type = Column(Text, default='')
     scope = Column(Text, default='')
-    # for statefulness
-    policy = Column(String(255))
     nonce = Column(Text)
     auth_time = Column(
         Integer, nullable=False,
@@ -22,6 +20,9 @@ class OAuth2AuthorizationCodeMixin(AuthorizationCodeMixin):
 
     code_challenge = Column(Text)
     code_challenge_method = Column(String(48))
+
+    # for statefulness
+    policy = Column(String(255))
 
     def is_expired(self):
         return self.auth_time + 300 < time.time()

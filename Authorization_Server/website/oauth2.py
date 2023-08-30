@@ -82,6 +82,8 @@ authorization = AuthorizationServer(
     query_client=query_client,
     save_token=save_token,
 )
+
+# TODO: Create `class ResourceProtectorStateful`.
 require_oauth = ResourceProtector()
 
 
