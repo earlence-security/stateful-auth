@@ -5,6 +5,13 @@ from authlib.oauth2.rfc6750.errors import (
 import os
 import requests
 import hashlib
+import json
+from flask import jsonify
+import time
+from authlib.oauth2.stateful.validator_helper import (
+    run_policy, build_request_JSON
+)
+import tempfile
 
 def create_query_client_func(session, client_model):
     """Create an ``query_client`` function that can be used in authorization
@@ -120,24 +127,40 @@ def create_bearer_token_validator_stateful(session, token_model, client_model):
             q = session.query(client_model)
             client = q.filter_by(client_id=token.client_id).first()
 
-            policy_url = os.path.join(client.policy_endpoint, token.policy)
-            response = requests.get(policy_url)
+            policy_url = os.path.join(client.policy_endpoint, token.policy + ".wasm")
 
-            if response.status_code == 200:
-                policy_data = response.content
-            else:
-                raise BadPolicyEndpointError()
+            # Put policy program in tmp for now
+            with tempfile.TemporaryDirectory() as chroot:
+                # Download the program from program endpoint
+                # TODO: Don't use this method, put program directly in request
+                program_name = policy_url.split("/")[-1]
+                policy_file = os.path.join(chroot, policy_url.split("/")[-1])
+                response = requests.get(policy_url)
+                if response.status_code == 200:
+                    policy_data = response.content
+                    with open(policy_file, "wb") as file:
+                        file.write(policy_data)
+                else:
+                    raise BadPolicyEndpointError()
 
-            # TODO: Add specify with hashing function to use.
+                # Check hash truthfulness
+                # TODO: Add specify which hashing function to use.
+                m = hashlib.sha256()
+                m.update(policy_data)
+                real_policy_hash = m.hexdigest()
+                if real_policy_hash != token.policy:
+                    raise PolicyHashMismatchError()
 
-            m = hashlib.sha256()
-            m.update(policy_data)
-            real_policy_hash = m.hexdigest()
+                request_JSON = build_request_JSON(request)
 
-            if real_policy_hash != token.policy:
-                raise PolicyHashMismatchError()
+                # TODO: Build JSON data for history
 
-            # TODO: run the policy, accept/deny based on output
-            
+                # run the policy, accept/deny based on output
+                result = run_policy(policy_file, program_name, request_JSON)
+                # Set this if testing non-policy related things
+                # result = True
+
+                if not result:
+                    raise PolicyFailedError()
 
     return _BearerTokenValidator

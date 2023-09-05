@@ -84,7 +84,7 @@ class PolicyFailedError(OAuth2Error):
     """The Policy program returned false
     """
     error = 'policy_failed'
-    description = 'The request requires higher privileges than provided by the access token.'
+    description = 'The Policy program returned false.'
     status_code = 403
 
 class BadPolicyEndpointError(OAuth2Error):

@@ -2,3 +2,5 @@
 *.pyc
 venv/*
 *.env
+Client/rust_policy/**/target/
+Client/rust_policy/**/debug/

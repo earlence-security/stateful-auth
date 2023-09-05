@@ -15,6 +15,13 @@ def api_me():
     user = current_token.user
     return jsonify(id=user.id, username=user.username)
 
+# Dummy api to demonstrate stateless policies
+@resource_bp.route('/me2')
+@require_oauth('profile')
+def api_me2():
+    user = current_token.user
+    return jsonify(id=user.id, username=user.username)
+
 @resource_bp.route('/events/<int:eventId>', methods=['GET', 'DELETE'])
 @require_oauth('events')
 def get_or_delete_event(eventId):
