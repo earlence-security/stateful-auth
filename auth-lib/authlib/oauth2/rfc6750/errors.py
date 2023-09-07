@@ -84,7 +84,7 @@ class PolicyFailedError(OAuth2Error):
     """The Policy program returned false
     """
     error = 'policy_failed'
-    description = 'The Policy program returned false.'
+    description = 'The Policy program denied the request.'
     status_code = 403
 
 class BadPolicyEndpointError(OAuth2Error):

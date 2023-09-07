@@ -2,6 +2,7 @@ import os
 import sys
 from flask import Flask, url_for, session, request, send_file
 from flask import render_template, redirect
+from utils import build_policy_decription_dict 
 
 # add the auth-lib in our directory as path
 parent_dir = os.path.abspath(os.path.dirname(__file__))
@@ -36,7 +37,7 @@ def homepage():
 @app.route('/login', methods=('GET', 'POST'))
 def login():
     if request.method == 'GET':
-        return render_template('login.html', policy_hashes=app.config['CLIENT_KWARGS'].get("policy_hashes"))
+        return render_template('login.html', policy_dict=build_policy_decription_dict())
     
     selected_option = request.form.get('selected_option')
     redirect_uri = url_for('auth', _external=True)

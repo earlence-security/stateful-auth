@@ -1,11 +1,18 @@
 <p>
-  Which policy do you want to request with this token?
+  <big>
+    Which policy do you want to request with this token?
+  </big>
 </p>
+<br>
 
 <form method="POST" action="/login">
-  {% for option in policy_hashes %}
-  <label for="{{ option }}">{{ option }}</label>
-  <input type="radio" name="selected_option" value="{{ option }}">
+  {% for key, value in policy_dict.items() %}
+  <input type="radio" name="selected_option" value="{{ key }}"> 
+  {{ key }} <br /> 
+  Discription: <br /> 
+  {{ value }}
+  <br>
+  <br>
   <br>
   {% endfor %}
   <input type="submit" value="Submit">
