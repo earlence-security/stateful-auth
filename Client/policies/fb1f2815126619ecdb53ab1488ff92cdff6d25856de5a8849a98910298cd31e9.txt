@@ -1,0 +1,1 @@
+When Token post to "http://127.0.0.1:5000/api/send-money", the "amount" field in the body of request must be smaller than 100.

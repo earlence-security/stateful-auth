@@ -11,10 +11,11 @@ def build_request_JSON(request):
     request_data = {}
     request_data['method'] = request.method
     request_data['uri'] = request.uri
-    if request.body == None:
+    request_body = request.data
+    if request_body == None:
         request_data['body'] = "null"
     else:
-        request_data['body'] = request.body
+        request_data['body'] = json.dumps(request_body)
 
     # TODO: header contains Token. Is this a security concern??
     request_data['headers'] = {k:v for k, v in request.headers.items()}
@@ -54,9 +55,10 @@ def run_policy(policy_addr, program_name, request_str, history_str = None):
 
         with open(out_log) as f:
             result = f.read()
-            if "Accept" in result:
+            if "Deny" in result:
+                return False
+            elif "Accept" in result:
                 return True
+            else:
+                return False
         
-        print(result)
-
-    return False

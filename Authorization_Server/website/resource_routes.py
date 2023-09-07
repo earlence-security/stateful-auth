@@ -15,12 +15,38 @@ def api_me():
     user = current_token.user
     return jsonify(id=user.id, username=user.username)
 
+
 # Dummy api to demonstrate stateless policies
 @resource_bp.route('/me2')
 @require_oauth('profile')
 def api_me2():
     user = current_token.user
     return jsonify(id=user.id, username=user.username)
+
+
+# Another Dummy api to demonstrate stateless policies
+@resource_bp.route('/send-money', methods=['POST'])
+@require_oauth('profile')
+def send_money():
+
+    data = flask.request.get_json()
+
+    if 'recipient' in data and 'amount' in data:
+        recipient = data['recipient']
+        amount = data['amount']
+
+        # Transfer the money
+
+        result = {
+            'message': f'Successfully sent {amount} to {recipient}',
+            'recipient': recipient,
+            'amount': amount
+        }
+
+        return jsonify(result), 200
+    else:
+        return jsonify({'error': 'Invalid request. Please provide recipient and amount.'}), 400
+
 
 @resource_bp.route('/events/<int:eventId>', methods=['GET', 'DELETE'])
 @require_oauth('events')
