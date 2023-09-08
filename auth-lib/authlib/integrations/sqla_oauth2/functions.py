@@ -114,9 +114,9 @@ def create_bearer_token_validator(session, token_model):
 
 def create_bearer_token_validator_stateful(session, token_model, client_model):
 
-    from authlib.oauth2.rfc6750 import BearerTokenValidator
+    from authlib.oauth2.stateful import BearerTokenValidatorStateful
 
-    class _BearerTokenValidator(BearerTokenValidator):
+    class _BearerTokenValidatorStateful(BearerTokenValidatorStateful):
         def authenticate_token(self, token_string):
             q = session.query(token_model)
             return q.filter_by(access_token=token_string).first()
@@ -163,4 +163,4 @@ def create_bearer_token_validator_stateful(session, token_model, client_model):
                 if not result:
                     raise PolicyFailedError()
 
-    return _BearerTokenValidator
+    return _BearerTokenValidatorStateful

@@ -5,14 +5,14 @@
     Validate Bearer Token for in request, scope and token.
 """
 
-from ..rfc6749 import TokenValidator
-from .errors import (
+from .resource_protector_stateful import TokenValidatorStateful
+from ..rfc6750.errors import (
     InvalidTokenError,
     InsufficientScopeError
 )
 
 
-class BearerTokenValidator(TokenValidator):
+class BearerTokenValidatorStateful(TokenValidatorStateful):
     TOKEN_TYPE = 'bearer'
 
     def authenticate_token(self, token_string):
@@ -38,3 +38,6 @@ class BearerTokenValidator(TokenValidator):
         if self.scope_insufficient(token.get_scope(), scopes):
             raise InsufficientScopeError()
         
+    def validate_token_stateful(self, token, scopes, request):
+        """get and run policy program"""
+        raise NotImplementedError()

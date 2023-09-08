@@ -1,6 +1,7 @@
 from authlib.integrations.flask_oauth2 import (
     AuthorizationServer,
     ResourceProtector,
+    ResourceProtectorStateful,
 )
 from authlib.integrations.sqla_oauth2 import (
     create_query_client_func,
@@ -83,8 +84,9 @@ authorization = AuthorizationServer(
     save_token=save_token,
 )
 
-# TODO: Create `class ResourceProtectorStateful`.
+
 require_oauth = ResourceProtector()
+require_oauth_stateful = ResourceProtectorStateful()
 
 
 def config_oauth(app):
@@ -103,6 +105,9 @@ def config_oauth(app):
 
     # protect resource
     bearer_cls = create_bearer_token_validator(db.session, OAuth2Token)
+    require_oauth.register_token_validator(bearer_cls())
+
+    # protect resource stateful
     # our stateful validator
     bearer_cls_stateful = create_bearer_token_validator_stateful(db.session, OAuth2Token, OAuth2Client)
-    require_oauth.register_token_validator(bearer_cls_stateful())
+    require_oauth_stateful.register_token_validator(bearer_cls_stateful())

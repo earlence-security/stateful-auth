@@ -8,9 +8,12 @@ from .rfc6749 import (
     ClientAuthentication,
     ResourceProtector,
 )
+from .stateful import (
+    ResourceProtectorStateful,
+)
 
 __all__ = [
     'OAuth2Error', 'ClientAuth', 'TokenAuth', 'OAuth2Client',
     'OAuth2Request', 'JsonRequest', 'AuthorizationServer',
-    'ClientAuthentication', 'ResourceProtector',
+    'ClientAuthentication', 'ResourceProtector', 'ResourceProtectorStateful',
 ]

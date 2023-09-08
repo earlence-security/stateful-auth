@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify
 from authlib.integrations.flask_oauth2 import current_token
 
 from .oauth2 import require_oauth
+from .oauth2 import require_oauth_stateful
 from .models import db, Event
 
 resource_bp = Blueprint("resource", __name__)
@@ -10,7 +11,7 @@ resource_bp = Blueprint("resource", __name__)
 # TODO: ResourceProtector.acquire_token. 
 # See https://github.com/lepture/authlib/blob/master/authlib/integrations/flask_oauth2/resource_protector.py
 @resource_bp.route('/me')
-@require_oauth('profile')
+@require_oauth_stateful('profile')
 def api_me():
     user = current_token.user
     return jsonify(id=user.id, username=user.username)
@@ -18,7 +19,7 @@ def api_me():
 
 # Dummy api to demonstrate stateless policies
 @resource_bp.route('/me2')
-@require_oauth('profile')
+@require_oauth_stateful('profile')
 def api_me2():
     user = current_token.user
     return jsonify(id=user.id, username=user.username)
@@ -26,23 +27,18 @@ def api_me2():
 
 # Another Dummy api to demonstrate stateless policies
 @resource_bp.route('/send-money', methods=['POST'])
-@require_oauth('profile')
+@require_oauth_stateful('profile')
 def send_money():
-
     data = flask.request.get_json()
-
     if 'recipient' in data and 'amount' in data:
         recipient = data['recipient']
         amount = data['amount']
-
         # Transfer the money
-
         result = {
-            'message': f'Successfully sent {amount} to {recipient}',
+            'message': f'Successfully sent ${amount} to {recipient}',
             'recipient': recipient,
             'amount': amount
         }
-
         return jsonify(result), 200
     else:
         return jsonify({'error': 'Invalid request. Please provide recipient and amount.'}), 400

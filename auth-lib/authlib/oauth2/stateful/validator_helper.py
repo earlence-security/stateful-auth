@@ -33,7 +33,7 @@ def run_policy(policy_addr, program_name, request_str, history_str = None):
     config = WasiConfig()
     config.argv = (program_name, request_str)
     config.preopen_dir(".", "/")
-
+    print("running policy with hash: " + program_name)
     with tempfile.TemporaryDirectory() as chroot:
         out_log = os.path.join(chroot, "out.log")
         err_log = os.path.join(chroot, "err.log")
@@ -55,6 +55,7 @@ def run_policy(policy_addr, program_name, request_str, history_str = None):
 
         with open(out_log) as f:
             result = f.read()
+            print("Policy returned: " + result)
             if "Deny" in result:
                 return False
             elif "Accept" in result:

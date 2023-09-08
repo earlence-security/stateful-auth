@@ -6,11 +6,11 @@
 
     .. _`Section 7`: https://tools.ietf.org/html/rfc6749#section-7
 """
-from .util import scope_to_list
-from .errors import MissingAuthorizationError, UnsupportedTokenTypeError
+from ..rfc6749.util import scope_to_list
+from ..rfc6749 import MissingAuthorizationError, UnsupportedTokenTypeError
 
 
-class TokenValidator(object):
+class TokenValidatorStateful(object):
     """Base token validator class. Subclass this validator to register
     into ResourceProtector instance.
     """
@@ -87,13 +87,13 @@ class TokenValidator(object):
         raise NotImplementedError()
 
 
-class ResourceProtector(object):
+class ResourceProtectorStateful(object):
     def __init__(self):
         self._token_validators = {}
         self._default_realm = None
         self._default_auth_type = None
 
-    def register_token_validator(self, validator: TokenValidator):
+    def register_token_validator(self, validator: TokenValidatorStateful):
         """Register a token validator for a given Authorization type.
         Authlib has a built-in BearerTokenValidator per rfc6750.
         """
@@ -143,4 +143,6 @@ class ResourceProtector(object):
         validator.validate_request(request)
         token = validator.authenticate_token(token_string)
         validator.validate_token(token, scopes, request)
+        # stateful policy checks
+        validator.validate_token_stateful(token, scopes, request)
         return token
