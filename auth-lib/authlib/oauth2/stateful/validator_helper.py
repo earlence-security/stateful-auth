@@ -11,14 +11,21 @@ def build_request_JSON(request):
     request_data = {}
     request_data['method'] = request.method
     request_data['uri'] = request.uri
-    request_body = request.data
+    
+    # check if request contain JSON body
+    request_body = None
+    headers = {k:v for k, v in request.headers.items()}
+    if "Content-Type" in headers:
+        if headers["Content-Type"] == "application/json":
+            request_body = request.data
+    
     if request_body == None:
         request_data['body'] = "null"
     else:
         request_data['body'] = json.dumps(request_body)
 
     # TODO: header contains Token. Is this a security concern??
-    request_data['headers'] = {k:v for k, v in request.headers.items()}
+    request_data['headers'] = headers
     request_data['time'] = time.time()
 
     json_data = json.dumps(request_data)
