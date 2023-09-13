@@ -25,11 +25,9 @@ fn main() {
 
     let parsed: Request = read_json(json_str);
 
-    let parsed_sendmoney: SendMoney = read_json_body(parsed.body.as_str());
-
     // policy
     if parsed.uri == "http://127.0.0.1:5000/api/send-money" {
-
+        let parsed_sendmoney: SendMoney = read_json_body(parsed.body.as_str());
         if parsed_sendmoney.amount > 100{
             println!("Deny");
             return ();

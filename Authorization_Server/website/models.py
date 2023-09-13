@@ -5,6 +5,8 @@ from authlib.integrations.sqla_oauth2 import (
     OAuth2AuthorizationCodeMixin,
     OAuth2TokenMixin,
 )
+from sqlalchemy_utils import UUIDType
+import uuid 
 
 db = SQLAlchemy()
 
@@ -70,3 +72,13 @@ class Event(db.Model):
     description = db.Column(db.String(40))
     time = db.Column(db.DateTime)
     location = db.Column(db.String(40))
+
+class Email(db.Model):
+    id = db.Column(UUIDType(binary=False), primary_key=True, default=uuid.uuid4)
+    # Mark which user this event belongs to
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
+    title = db.Column(db.String(40))
+    content = db.Column(db.String(200))
+
+    def as_dict(self):
+       return {c.name: getattr(self, c.name) for c in self.__table__.columns}
