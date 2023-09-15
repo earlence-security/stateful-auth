@@ -9,4 +9,6 @@ def current_user():
 
 
 def split_by_crlf(s):
-    return [v for v in s.splitlines() if v]
+    import re
+    regex_pattern = '|'.join(map(re.escape, ['\r\n', '\r', '\n', ',', ';', ' ']))
+    return list(filter(lambda x: x is not '', re.split(regex_pattern, s)))

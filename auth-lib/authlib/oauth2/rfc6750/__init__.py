@@ -9,7 +9,7 @@
     https://tools.ietf.org/html/rfc6750
 """
 
-from .errors import InvalidTokenError, InsufficientScopeError
+from .errors import InvalidTokenError, InsufficientScopeError, UnregisteredPolicyError
 from .parameters import add_bearer_token
 from .token import BearerTokenGenerator
 from .validator import BearerTokenValidator
@@ -20,6 +20,7 @@ BearerToken = BearerTokenGenerator
 
 __all__ = [
     'InvalidTokenError', 'InsufficientScopeError',
+    'UnregisteredPolicyError',
     'add_bearer_token',
     'BearerToken',
     'BearerTokenGenerator',

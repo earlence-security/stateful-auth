@@ -14,7 +14,7 @@
 from ..base import OAuth2Error
 
 __all__ = [
-    'InvalidTokenError', 'InsufficientScopeError', 'PolicyFailedError', 'BadPolicyEndpointError',
+    'InvalidTokenError', 'InsufficientScopeError', 'UnregisteredPolicyError', 'PolicyFailedError', 'BadPolicyEndpointError',
     'PolicyHashMismatchError',
 ]
 
@@ -80,8 +80,15 @@ class InsufficientScopeError(OAuth2Error):
     description = 'The request requires higher privileges than provided by the access token.'
     status_code = 403
 
+class UnregisteredPolicyError(OAuth2Error):
+    """The policy program is not registered.
+    """
+    error = 'unregistered_policy'
+    description = 'The policy program is not registered.'
+    status_code = 403
+
 class PolicyFailedError(OAuth2Error):
-    """The Policy program returned false
+    """The Policy program returned false.
     """
     error = 'policy_failed'
     description = 'The Policy program denied the request.'

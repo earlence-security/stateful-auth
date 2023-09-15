@@ -1,11 +1,12 @@
 import time
+import uuid
+from datetime import date
 from flask_sqlalchemy import SQLAlchemy
 from authlib.integrations.sqla_oauth2 import (
     OAuth2ClientMixin,
     OAuth2AuthorizationCodeMixin,
     OAuth2TokenMixin,
 )
-from sqlalchemy_utils import UUIDType
 import uuid 
 
 db = SQLAlchemy()
@@ -65,20 +66,32 @@ class OAuth2Token(db.Model, OAuth2TokenMixin):
 # 
 ######################
 class Event(db.Model):
-    id = db.Column(db.Uuid, primary_key=True)
+    """A simple event model for users to record events happen in the past or future."""
+    __tablename__ = 'event'
+
+    id = db.Column(db.Uuid, primary_key=True, default=uuid.uuid4)
     # Mark which user this event belongs to
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
-    name = db.Column(db.String(40))
-    description = db.Column(db.String(40))
-    time = db.Column(db.DateTime)
-    location = db.Column(db.String(40))
+    user = db.relationship('User')
+    # Event information
+    name = db.Column(db.String(40), default='(No title)')
+    description = db.Column(db.String(40), default='')
+    time = db.Column(db.Float, default=time.time())
+    location = db.Column(db.String(40), default='')
+
+    @property
+    def as_dict(self):
+       return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 class Email(db.Model):
-    id = db.Column(UUIDType(binary=False), primary_key=True, default=uuid.uuid4)
+    id = db.Column(db.Uuid, primary_key=True, default=uuid.uuid4)
     # Mark which user this event belongs to
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
     title = db.Column(db.String(40))
     content = db.Column(db.String(200))
 
+    @property
     def as_dict(self):
        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+

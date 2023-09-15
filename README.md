@@ -25,11 +25,12 @@ Auth server will be running on ``http://127.0.0.1:5000/``
 Visit the Auth server, register our Client with the Auth Server by filling in Client metadata:
 
 ```
-  client_uri: http://127.0.0.1:8080/
-  grant_types: ['authorization_code']
+  client_uri: 'http://127.0.0.1:8080/'
+  allowed_scope: ['profile']
+  policy_program_endpoint: 'http://127.0.0.1:8080/policy'
   redirect_uris: ['http://127.0.0.1:8080/auth']
+  grant_types: ['authorization_code']
   response_types: ['code']
-  scope: profile
   token_endpoint_auth_method: client_secret_basic
 ```
 
@@ -66,3 +67,9 @@ Client will be running on ``http://127.0.0.1:8080/``
 Visit the Client, connect and consent, select which policy to enforce
 
 Successfully got back the user's Token!
+
+Then, use the token to access any API provided by the server as you wish.
+For example, if we want to access `/api/me`.
+```
+curl -H "Authorization: Bearer ${access_token}" http://127.0.0.1:5000/api/me
+```

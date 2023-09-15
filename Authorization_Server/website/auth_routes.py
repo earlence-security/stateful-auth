@@ -4,6 +4,7 @@ from flask import Blueprint, request, session, url_for
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
 from authlib.oauth2 import OAuth2Error
+from authlib.oauth2.rfc6750 import UnregisteredPolicyError
 from .models import db, User, OAuth2Client
 from .oauth2 import authorization
 from .utils import current_user, split_by_crlf
@@ -60,8 +61,6 @@ def create_client():
 
     form = request.form
     # This `client_metadata` is stored as json in db.Client model.
-
-    # TODO: Add specify with hashing function to use.
     client_metadata = {
         "client_name": form["client_name"],
         "client_uri": form["client_uri"],
@@ -105,22 +104,17 @@ def authorize():
         # except NotStatefulException as e:
             # print("An error occurred:", e)
         except ValueError as error:
-            return error.error
+            return error.error, 400
         
         # TODO handle Null client
         client = OAuth2Client.query.filter_by(client_id=client_id).first()
         if policy not in client.client_metadata.get("policy_hashes"):
-            print(client.client_metadata.get("policy_hashes"))
-            # Abort with 400 Bad Request if policy is unregistered
-            flask.abort(400)
-
-        # -------------------------------------
-        # QA: Maybe the above code can be decorator of `AuthorizationServer.get_consent_grant`?
+            return UnregisteredPolicyError().error, 403
 
         try:
             grant = authorization.get_consent_grant(end_user=user)
         except OAuth2Error as error:
-            return error.error
+            return error.error, 403
         return render_template('authorize.html', user=user, grant=grant, policy=policy)
     if not user and 'username' in request.form:
         username = request.form.get('username')

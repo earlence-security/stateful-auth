@@ -1,8 +1,11 @@
 import flask
+import time
+from datetime import datetime
 from flask import Blueprint, jsonify
 from authlib.integrations.flask_oauth2 import current_token
 import json
 
+from authlib.integrations.flask_oauth2 import current_token
 from .oauth2 import require_oauth
 from .oauth2 import require_oauth_stateful
 from .models import db, Event, Email
@@ -12,7 +15,7 @@ resource_bp = Blueprint("resource", __name__)
 # TODO: ResourceProtector.acquire_token. 
 # See https://github.com/lepture/authlib/blob/master/authlib/integrations/flask_oauth2/resource_protector.py
 @resource_bp.route('/me')
-@require_oauth_stateful()
+@require_oauth("profile")
 def api_me():
     user = current_token.user
     return jsonify(id=user.id, username=user.username)
@@ -88,8 +91,8 @@ def list_or_insert_email():
         return jsonify(email.as_dict()), 201
 
 
-@resource_bp.route('/events/<int:eventId>', methods=['GET', 'DELETE'])
-@require_oauth('events')
+@resource_bp.route('/events/<uuid:eventId>', methods=['GET', 'DELETE'])
+@require_oauth('profile')  # TODO: Replace scope w/ other value (eg. "events")
 def get_or_delete_event(eventId):
     '''Endpoint for get or delete an event.'''
     user = current_token.user
@@ -102,29 +105,38 @@ def get_or_delete_event(eventId):
         # Forbidden
         flask.abort(403)
     if flask.request.method == 'GET':
-        return jsonify(event)
+        return jsonify(event.as_dict)
     else:
         db.session.delete(event)
         db.session.commit()
         return 'deleted', 204
 
 @resource_bp.route('/events', methods=['GET', 'POST'])
-@require_oauth('events')
+@require_oauth('profile')  # TODO: Replace scope w/ other value (eg. "events")
 def list_or_insert_event():
     '''Endpoint for list all the events or insert an new event.'''
     user = current_token.user
     if flask.request.method == 'GET':
         events = Event.query.filter_by(user_id=user.id).all()
-        return jsonify(events)
+        return jsonify([(e.as_dict) for e in events])
     else:
         form = flask.request.form
+        if 'date' in form:
+            try:
+                t = datetime.fromisoformat(form.get('time')).timestamp()
+            except:
+                # Bad request
+                return "Invalid time format. Please use ISO format.", 400
+        else:
+            t = time.time()
         event = Event(
             user_id=user.id,
-            title=form.get('title'),
-            description=form.get('description'),
-            time=form.get('time'),
-            location=form.get('location'),
+            name=form.get('name', default='(No title)'),
+            description=form.get('description', default=''),
+            time=t,
+            location=form.get('location', default=''),
         )
         db.session.add(event)
         db.session.commit()
-        return jsonify(event), 201
+        print(event.as_dict)
+        return jsonify(event.as_dict), 201
