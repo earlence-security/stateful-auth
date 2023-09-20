@@ -1,7 +1,7 @@
 import time
 import json
 
-from wasmtime import Config, Engine, Linker, Module, Store, WasiConfig
+from wasmtime import Linker, Module, Store, WasiConfig
 import os
 import tempfile
 
@@ -31,11 +31,12 @@ def build_request_JSON(request):
     json_data = json.dumps(request_data)
     return json_data
 
-def run_policy(policy_addr, program_name, request_str, history_str = None):
+def run_policy(wasm_engine, policy_addr, program_name, request_str, history_str = None):
 
-    engine_cfg = Config()
-    linker = Linker(Engine(engine_cfg))
+    linker = Linker(wasm_engine)
     linker.define_wasi()
+
+    # Module is the unit of deployment, loading, and compilation
     python_module = Module.from_file(linker.engine, policy_addr)
     config = WasiConfig()
     config.argv = (program_name, request_str)
@@ -47,6 +48,8 @@ def run_policy(policy_addr, program_name, request_str, history_str = None):
         config.stdout_file = out_log
         config.stderr_file = err_log
 
+        # Store is a unit of isolation in wasmtime
+        # containes wasm objects
         store = Store(linker.engine)
 
         store.set_wasi(config)
