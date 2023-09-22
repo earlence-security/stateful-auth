@@ -1,1 +1,1 @@
-This is a dummy policy to demonstrate what happens if Client requests a Token with policy unregistered with the Auth Server.
+This is a dummy policy to demonstrate what happens if Client requests a Token with policy unregistered with the Auth Server, or if the policy != its hash.
