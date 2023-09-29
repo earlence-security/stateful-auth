@@ -12,7 +12,7 @@ from authlib.oauth2.stateful.validator_helper import (
     run_policy, build_request_JSON
 )
 import tempfile
-from wasmtime import Config, Engine
+from wasmtime import Config, Engine, Linker
 
 def create_query_client_func(session, client_model):
     """Create an ``query_client`` function that can be used in authorization
@@ -119,8 +119,11 @@ def create_bearer_token_validator_stateful(session, token_model, client_model):
 
     class _BearerTokenValidatorStateful(BearerTokenValidatorStateful):
 
-        engine_cfg = Config()
-        engine = Engine(engine_cfg)
+        # WASM initialization 
+        wasm_engine_cfg = Config()
+        wasm_engine = Engine(wasm_engine_cfg)
+        wasm_linker = Linker(wasm_engine)
+        wasm_linker.define_wasi()
 
         def authenticate_token(self, token_string):
             q = session.query(token_model)
@@ -161,11 +164,12 @@ def create_bearer_token_validator_stateful(session, token_model, client_model):
                 # TODO: Build JSON data for history
 
                 # run the policy, accept/deny based on output
-                result = run_policy(self.engine, policy_file, program_name, request_JSON)
+                result = run_policy(self.wasm_linker, policy_file, program_name, request_JSON)
                 # Set this if testing non-policy related things
                 # result = True
 
                 if not result:
                     raise PolicyFailedError()
+                
 
     return _BearerTokenValidatorStateful

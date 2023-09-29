@@ -31,18 +31,21 @@ def build_request_JSON(request):
     json_data = json.dumps(request_data)
     return json_data
 
-def run_policy(wasm_engine, policy_addr, program_name, request_str, history_str = None):
-
-    linker = Linker(wasm_engine)
-    linker.define_wasi()
+def run_policy(linker, policy_addr, program_name, request_str, history_str = None):
+    # Design: https://docs.rs/wasmtime/latest/wasmtime/#example-architecture
 
     # Module is the unit of deployment, loading, and compilation
-    python_module = Module.from_file(linker.engine, policy_addr)
+    # Module.from_file compiles .wasm binary into wasm Module
+    # Most expensive operation
+    # we should consider caching Modules! 
+    policy_module = Module.from_file(linker.engine, policy_addr)
+
     config = WasiConfig()
     config.argv = (program_name, request_str)
     config.preopen_dir(".", "/")
     print("running policy with hash: " + program_name)
     with tempfile.TemporaryDirectory() as chroot:
+
         out_log = os.path.join(chroot, "out.log")
         err_log = os.path.join(chroot, "err.log")
         config.stdout_file = out_log
@@ -50,13 +53,17 @@ def run_policy(wasm_engine, policy_addr, program_name, request_str, history_str 
 
         # Store is a unit of isolation in wasmtime
         # containes wasm objects
+        # We must have one Store per request, because Store dont' have GC and isolation.
         store = Store(linker.engine)
-
         store.set_wasi(config)
-        instance = linker.instantiate(store, python_module)
+
+        # instantiated module
+        # both new store and instantiate are very cheap
+        instance = linker.instantiate(store, policy_module)
 
         # _start is the default wasi main function
         start = instance.exports(store)["_start"]
+
         try:
             start(store)
         except Exception as e:
