@@ -1,6 +1,6 @@
 import time
 from authlib.oauth2.rfc6750.errors import (
-    PolicyFailedError, BadPolicyEndpointError, PolicyHashMismatchError
+    PolicyFailedError, BadPolicyEndpointError, PolicyHashMismatchError, PolicyCrashedError
 )
 import os
 import requests
@@ -162,11 +162,12 @@ def create_bearer_token_validator_stateful(session, token_model, client_model):
                 request_JSON = build_request_JSON(request)
 
                 # TODO: Build JSON data for history
-
-                # run the policy, accept/deny based on output
-                result = run_policy(self.wasm_linker, policy_file, program_name, request_JSON)
-                # Set this if testing non-policy related things
-                # result = True
+                try:
+                    # run the policy, accept/deny based on output
+                    result = run_policy(self.wasm_linker, policy_file, program_name, request_JSON)
+                except Exception as e:
+                    print(e)
+                    raise PolicyCrashedError()
 
                 if not result:
                     raise PolicyFailedError()

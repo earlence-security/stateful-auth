@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Selection</title>
+</head>
+<body>
+
+    <h1>Select an API to call:</h1>
+    <p>
+        <big>
+          token is:
+        </big>
+        <br>
+        {{ token|tojson }}
+        <br>
+        <br>
+        <big>
+            policy is:
+        </big>
+        <br>
+        {{ policy }}
+    </p>
+
+    <form method="POST">
+
+        <select name="method_option">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="DELETE">DELETE</option>
+        </select>
+
+        <select name="api_option">
+            <option value="http://127.0.0.1:5000/api/me">api/me</option>
+            <option value="http://127.0.0.1:5000/api/me2">api/me2</option>
+            <option value="http://127.0.0.1:5000/api/send-money">api/send-money</option>
+        </select>
+        
+        <br>
+        <label for="api_append">append to path: (obj_id)</label>
+        <br>
+        <textarea name="api_append" id="api_append" rows="1" cols="30"></textarea>
+
+        <br>
+        <br>
+        <label for="key">Key:</label>
+        <input type="text" name="key" id="key">
+        <label for="value">Value:</label>
+        <input type="text" name="value" id="value">
+        <button type="button" onclick="addKeyValue()">To JSON</button>
+
+        <br>
+        <label for="request_body">Request Body:</label>
+        <br>
+        <textarea name="request_body" id="request_body" rows="6" cols="50"></textarea>
+        <br>
+
+        <input type="submit" value="Make API Call">
+    </form>
+
+    <p>
+        <big>
+          result is:
+        </big>
+        <br>
+        {{ result }}
+    </p>
+
+
+    <!--parse key value into json body-->
+    <script>
+        let keyValuePairs = {};
+
+        function addKeyValue() {
+            const keyInput = document.getElementById("key");
+            const valueInput = document.getElementById("value");
+
+            const key = keyInput.value;
+            let value = 0;
+            // number hack for now
+            if (isNaN(valueInput.value)){
+                value = valueInput.value;
+            }
+            else {
+                value = parseInt(valueInput.value);
+            }
+
+            if (key && value) {
+                keyValuePairs[key] = value;
+                keyInput.value = "";
+                valueInput.value = "";
+                updateRequestBody();
+            }
+        }
+
+        function updateRequestBody() {
+            const requestBodyTextArea = document.getElementById("request_body");
+            requestBodyTextArea.value = JSON.stringify(keyValuePairs, null, 2);
+        }
+    </script>
+
+
+</body>
+</html>

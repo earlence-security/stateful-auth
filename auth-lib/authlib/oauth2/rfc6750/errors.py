@@ -15,7 +15,7 @@ from ..base import OAuth2Error
 
 __all__ = [
     'InvalidTokenError', 'InsufficientScopeError', 'UnregisteredPolicyError', 'PolicyFailedError', 'BadPolicyEndpointError',
-    'PolicyHashMismatchError',
+    'PolicyHashMismatchError', 'PolicyCrashedError'
 ]
 
 
@@ -106,4 +106,11 @@ class PolicyHashMismatchError(OAuth2Error):
     """
     error = 'policy_hash_mismatch'
     description = 'policy_hash != hash(policy)'
+    status_code = 403
+
+class PolicyCrashedError(OAuth2Error):
+    """policy execution unsuccessful
+    """
+    error = 'policy_crashed'
+    description = 'policy execution unsuccessful'
     status_code = 403

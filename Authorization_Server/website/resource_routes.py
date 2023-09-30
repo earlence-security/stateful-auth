@@ -15,7 +15,7 @@ resource_bp = Blueprint("resource", __name__)
 # TODO: ResourceProtector.acquire_token. 
 # See https://github.com/lepture/authlib/blob/master/authlib/integrations/flask_oauth2/resource_protector.py
 @resource_bp.route('/me')
-@require_oauth("profile")
+@require_oauth_stateful()
 def api_me():
     user = current_token.user
     return jsonify(id=user.id, username=user.username)

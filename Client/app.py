@@ -3,6 +3,7 @@ import sys
 from flask import Flask, url_for, session, request, send_file
 from flask import render_template, redirect
 from utils import build_policy_decription_dict 
+import requests
 
 # add the auth-lib in our directory as path
 parent_dir = os.path.abspath(os.path.dirname(__file__))
@@ -28,6 +29,8 @@ oauth.register(
     client_kwargs=app.config['CLIENT_KWARGS']
 )
 
+policy_dict=build_policy_decription_dict()
+
 @app.route('/')
 def homepage():
     token = session.get('token')
@@ -37,7 +40,7 @@ def homepage():
 @app.route('/login', methods=('GET', 'POST'))
 def login():
     if request.method == 'GET':
-        return render_template('login.html', policy_dict=build_policy_decription_dict())
+        return render_template('login.html', policy_dict=policy_dict)
     
     selected_option = request.form.get('selected_option')
     redirect_uri = url_for('auth', _external=True)
@@ -50,7 +53,7 @@ def auth():
     token = oauth.testClient.authorize_access_token()
     #TODO
     #Put in database not session
-    session['token'] = token
+    session['token'] = token 
     return redirect('/')
 
 
@@ -67,3 +70,39 @@ def send_policy(policy_hash):
     file_path = os.path.join(auth_lib_dir, policy_hash)
 
     return send_file(file_path)
+
+@app.route('/make_request', methods=['GET', 'POST'])
+def make_request():
+    token = session.get('token')
+    policy = policy_dict[token["policy"]]
+    result = ""
+    if request.method == 'POST':
+        selected_api = request.form.get('api_option')
+        selected_method = request.form.get('method_option')
+        headers = {
+            'Authorization': f'Bearer {token["access_token"]}',
+        }
+
+        try:
+            if selected_method == 'GET':
+                response = requests.get(selected_api, headers=headers)
+
+            if selected_method == 'POST':
+                headers = {
+                    'Authorization': f'Bearer {token["access_token"]}',
+                    'Content-Type': 'application/json',
+                }
+                request_body = request.form.get('request_body')
+                response = requests.post(selected_api, headers=headers, data=request_body) 
+            
+            if selected_method == 'DELETE':
+                response = requests.delete(selected_api, headers=headers)
+
+            if response.status_code !=  403:
+                response.raise_for_status()
+            result = response.json()
+
+        except Exception as e:
+            result = {'error': str(e)}
+
+    return render_template('select_api.html', token=token, policy=policy, result=result)
