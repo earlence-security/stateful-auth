@@ -48,7 +48,7 @@ def send_money():
         return jsonify({'error': 'Invalid request. Please provide recipient and amount.'}), 400
 
 
-@resource_bp.route('/emails/<emailId>', methods=['GET', 'DELETE'])
+@resource_bp.route('/emails/<uuid:emailId>', methods=['GET', 'DELETE'])
 @require_oauth_stateful()
 def get_or_delete_emails(emailId):
     '''Endpoint for get or delete an email.'''
@@ -62,7 +62,7 @@ def get_or_delete_emails(emailId):
         # Forbidden
         flask.abort(403)
     if flask.request.method == 'GET':
-        return jsonify(email.as_dict())
+        return jsonify(email.as_dict)
     else:
         db.session.delete(email)
         db.session.commit()
@@ -77,7 +77,7 @@ def list_or_insert_email():
         emails = Email.query.filter_by(user_id=user.id).all()
         email_json = []
         for email in emails:
-            email_json.append(email.as_dict())
+            email_json.append(email.as_dict)
         return jsonify(user_id=user.id, results=email_json)
     else:
         email_request = flask.request.get_json()
@@ -88,7 +88,7 @@ def list_or_insert_email():
         )
         db.session.add(email)
         db.session.commit()
-        return jsonify(email.as_dict()), 201
+        return jsonify(email.as_dict), 201
 
 
 @resource_bp.route('/events/<uuid:eventId>', methods=['GET', 'DELETE'])

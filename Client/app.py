@@ -4,6 +4,7 @@ from flask import Flask, url_for, session, request, send_file
 from flask import render_template, redirect
 from utils import build_policy_decription_dict 
 import requests
+import json
 
 # add the auth-lib in our directory as path
 parent_dir = os.path.abspath(os.path.dirname(__file__))
@@ -79,13 +80,17 @@ def make_request():
     if request.method == 'POST':
         selected_api = request.form.get('api_option')
         selected_method = request.form.get('method_option')
+        input_api_append = request.form.get('api_append')
+        target_api = selected_api
+        if not input_api_append == "":
+            target_api = os.path.join(selected_api, input_api_append)
         headers = {
             'Authorization': f'Bearer {token["access_token"]}',
         }
 
         try:
             if selected_method == 'GET':
-                response = requests.get(selected_api, headers=headers)
+                response = requests.get(target_api, headers=headers)
 
             if selected_method == 'POST':
                 headers = {
@@ -93,14 +98,17 @@ def make_request():
                     'Content-Type': 'application/json',
                 }
                 request_body = request.form.get('request_body')
-                response = requests.post(selected_api, headers=headers, data=request_body) 
-            
+                response = requests.post(target_api, headers=headers, data=request_body) 
+
             if selected_method == 'DELETE':
-                response = requests.delete(selected_api, headers=headers)
+                response = requests.delete(target_api, headers=headers)
 
             if response.status_code !=  403:
                 response.raise_for_status()
-            result = response.json()
+
+            if response.text != "":
+                json_object = json.loads(response.content)
+                result = json.dumps(json_object, indent=2)
 
         except Exception as e:
             result = {'error': str(e)}
