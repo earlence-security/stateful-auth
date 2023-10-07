@@ -10,9 +10,12 @@ import json
 parent_dir = os.path.abspath(os.path.dirname(__file__))
 parent_dir = os.path.abspath(os.path.join(parent_dir, os.pardir))
 auth_lib_dir = os.path.join(parent_dir, 'auth-lib')
+history_lib_dir = os.path.join(parent_dir, 'historylib')
 sys.path.append(auth_lib_dir)
+sys.path.append(parent_dir)
 
 from authlib.integrations.flask_client import OAuth
+from historylib.client_utils import get_history, history_to_file
 
 app = Flask(__name__)
 app.secret_key = 'secret'
@@ -114,3 +117,17 @@ def make_request():
             result = {'error': str(e)}
 
     return render_template('select_api.html', token=token, policy=policy, result=result)
+
+@app.route('/gethistory', methods=['POST'])
+def return_history():
+    obj_id = request.form.get('api_append')  # Get object id from form
+    if not obj_id:
+        return "No obj_id provided"
+    ret = get_history(obj_id, app.config['HISTORY_DIRECTORY'])
+    if ret == None:
+        return "History is empty"
+    else:
+        # pretty format
+        json_object = json.loads(ret.to_json())
+        result = json.dumps(json_object, indent=2)
+        return result

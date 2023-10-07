@@ -9,3 +9,4 @@ CLIENT_KWARGS = {
     'scope': 'profile',
     'policy_hashes': read_policy_hashes()
 }
+HISTORY_DIRECTORY = os.path.join(os.getcwd(), "history")

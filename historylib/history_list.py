@@ -3,7 +3,7 @@
 
 import time
 import json
-from history import History
+from .history import History
 import hashlib
 
 # Server         : Store (new HistoryList -> json -> hash)

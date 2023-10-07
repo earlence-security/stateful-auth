@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>API Selection</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
 
@@ -21,7 +22,7 @@
         {{ policy }}
     </p>
 
-    <form method="POST">
+    <form method="POST" id="inputForm">
 
         <select name="method_option">
             <option value="GET">GET</option>
@@ -39,10 +40,12 @@
         <br>
         <label for="api_append">append to path: (obj_id)</label>
         <br>
-        <textarea name="api_append" id="api_append" rows="1" cols="30"></textarea>
+        <textarea name="api_append" id="api_append" rows="1" cols="40"></textarea>
 
+        <button type="button" id="gethistory">Get History from Obj_id</button>
         <br>
-        <br>
+        <pre id="historyresult"></pre>
+
         <label for="key">Key:</label>
         <input type="text" name="key" id="key">
         <label for="value">Value:</label>
@@ -99,6 +102,22 @@
             const requestBodyTextArea = document.getElementById("request_body");
             requestBodyTextArea.value = JSON.stringify(keyValuePairs, null, 2);
         }
+    </script>
+
+    <!--script for getting history data-->
+    <script>
+        $(document).ready(function () {
+            $("#gethistory").click(function () {
+                $.ajax({
+                    type: 'POST',
+                    url: '/gethistory',
+                    data: $("#inputForm").serialize(),
+                    success: function (response) {
+                        $("#historyresult").html(response);
+                    }
+                });
+            });
+        });
     </script>
 
 
