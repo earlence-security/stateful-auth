@@ -36,6 +36,8 @@ oauth.register(
 
 policy_dict = build_policy_decription_dict()
 history_path = app.config['HISTORY_DIRECTORY']
+if not os.path.exists(history_path):
+   os.makedirs(history_path)
 
 @app.route('/')
 def homepage():
