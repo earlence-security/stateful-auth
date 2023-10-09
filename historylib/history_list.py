@@ -51,7 +51,11 @@ class HistoryList:
         history_dict_list = [hist.to_dict() for hist in self.entries]
         result_dict = {"history": history_dict_list}
         return json.dumps(result_dict)
-
+    
+    def to_dict(self):
+        history_dict_list = [hist.to_dict() for hist in self.entries]
+        result_dict = {"history": history_dict_list}
+        return result_dict
 
     # get hash of a list of histories
     def to_hash(self):

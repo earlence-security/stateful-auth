@@ -13,6 +13,8 @@ from authlib.oauth2.stateful.validator_helper import (
 )
 import tempfile
 from wasmtime import Config, Engine, Linker
+from historylib.history import History
+from historylib.history_list import HistoryList
 
 def create_query_client_func(session, client_model):
     """Create an ``query_client`` function that can be used in authorization
@@ -137,6 +139,14 @@ def create_bearer_token_validator_stateful(session, token_model, client_model):
 
             policy_url = os.path.join(client.policy_endpoint, token.policy + ".wasm")
 
+            # TODO
+            # Add logic to check for history integrity
+            
+            history_json = request.headers.get('Authorization-History')
+            historylist = HistoryList()
+            if history_json:
+                historylist = HistoryList(history_json)
+
             # Put policy program in tmp for now
             with tempfile.TemporaryDirectory() as chroot:
                 # Download the program from program endpoint
@@ -164,7 +174,7 @@ def create_bearer_token_validator_stateful(session, token_model, client_model):
                 # TODO: Build JSON data for history
                 try:
                     # run the policy, accept/deny based on output
-                    result = run_policy(self.wasm_linker, policy_file, program_name, request_JSON)
+                    result = run_policy(self.wasm_linker, policy_file, program_name, request_JSON, historylist.to_json())
                 except Exception as e:
                     print(e)
                     raise PolicyCrashedError()

@@ -31,7 +31,7 @@ def build_request_JSON(request):
     json_data = json.dumps(request_data)
     return json_data
 
-def run_policy(linker, policy_addr, program_name, request_str, history_str = None):
+def run_policy(linker, policy_addr, program_name, request_str, history_str):
     # Design: https://docs.rs/wasmtime/latest/wasmtime/#example-architecture
 
     # Module is the unit of deployment, loading, and compilation
@@ -41,7 +41,7 @@ def run_policy(linker, policy_addr, program_name, request_str, history_str = Non
     policy_module = Module.from_file(linker.engine, policy_addr)
 
     config = WasiConfig()
-    config.argv = (program_name, request_str)
+    config.argv = (program_name, request_str, history_str)
     config.preopen_dir(".", "/")
     print("running policy with hash: " + program_name)
     with tempfile.TemporaryDirectory() as chroot:

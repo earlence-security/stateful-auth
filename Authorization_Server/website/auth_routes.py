@@ -91,7 +91,7 @@ def authorize():
     user = current_user()
     # if user log status is not true (Auth server), then to log it in
     if not user:
-        return redirect(url_for('home.home', next=request.url))
+        return redirect(url_for('auth.home', next=request.url))
     if request.method == 'GET':
         # TODO: Check if policy is recorded.
         # -------------------------------------

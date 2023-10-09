@@ -15,7 +15,8 @@ sys.path.append(auth_lib_dir)
 sys.path.append(parent_dir)
 
 from authlib.integrations.flask_client import OAuth
-from historylib.client_utils import get_history, history_to_file
+from historylib.client_utils import get_history, history_to_file, delete_history_file
+from historylib.history_list import HistoryList
 
 app = Flask(__name__)
 app.secret_key = 'secret'
@@ -33,7 +34,8 @@ oauth.register(
     client_kwargs=app.config['CLIENT_KWARGS']
 )
 
-policy_dict=build_policy_decription_dict()
+policy_dict = build_policy_decription_dict()
+history_path = app.config['HISTORY_DIRECTORY']
 
 @app.route('/')
 def homepage():
@@ -87,24 +89,31 @@ def make_request():
         target_api = selected_api
         if not input_api_append == "":
             target_api = os.path.join(selected_api, input_api_append)
+        
         headers = {
             'Authorization': f'Bearer {token["access_token"]}',
         }
+
+        # get history attached with this obj
+        if input_api_append:
+            obj_history = get_history(input_api_append, history_path, token["access_token"])
+            headers['Authorization-History'] = obj_history.to_json()
+        else:
+            headers['Authorization-History'] = ""
 
         try:
             if selected_method == 'GET':
                 response = requests.get(target_api, headers=headers)
 
             if selected_method == 'POST':
-                headers = {
-                    'Authorization': f'Bearer {token["access_token"]}',
-                    'Content-Type': 'application/json',
-                }
+                headers['Content-Type'] = 'application/json'
                 request_body = request.form.get('request_body')
                 response = requests.post(target_api, headers=headers, data=request_body) 
 
             if selected_method == 'DELETE':
                 response = requests.delete(target_api, headers=headers)
+                if response.status_code == 204:
+                    delete_history_file(input_api_append, history_path)
 
             if response.status_code !=  403:
                 response.raise_for_status()
@@ -112,6 +121,15 @@ def make_request():
             if response.text != "":
                 json_object = json.loads(response.content)
                 result = json.dumps(json_object, indent=2)
+            
+            # store new history
+            new_auth_history = response.headers.get('Set-Authorization-History')
+            if new_auth_history:
+                obj_id = input_api_append
+                if selected_method == 'POST':
+                    obj_id = json_object['id']
+                resp_hist_list = HistoryList(response.headers['Set-Authorization-History'])
+                history_to_file(resp_hist_list, obj_id, history_path, token["access_token"])
 
         except Exception as e:
             result = {'error': str(e)}
@@ -120,14 +138,12 @@ def make_request():
 
 @app.route('/gethistory', methods=['POST'])
 def return_history():
+    token = session.get('token')
     obj_id = request.form.get('api_append')  # Get object id from form
     if not obj_id:
         return "No obj_id provided"
-    ret = get_history(obj_id, app.config['HISTORY_DIRECTORY'])
-    if ret == None:
-        return "History is empty"
-    else:
-        # pretty format
-        json_object = json.loads(ret.to_json())
-        result = json.dumps(json_object, indent=2)
-        return result
+    ret = get_history(obj_id, app.config['HISTORY_DIRECTORY'], token["access_token"])
+
+    json_object = json.loads(ret.to_json())
+    result = json.dumps(json_object, indent=2)
+    return result

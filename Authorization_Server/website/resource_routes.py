@@ -1,7 +1,7 @@
 import flask
 import time
 from datetime import datetime
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, make_response
 from authlib.integrations.flask_oauth2 import current_token
 import json
 
@@ -9,6 +9,11 @@ from authlib.integrations.flask_oauth2 import current_token
 from .oauth2 import require_oauth
 from .oauth2 import require_oauth_stateful
 from .models import db, Event, Email
+
+from historylib.history import History
+from historylib.history_list import HistoryList
+from historylib.server_utils import historylist_to_storage_json
+
 
 resource_bp = Blueprint("resource", __name__)
 
@@ -54,6 +59,9 @@ def get_or_delete_emails(emailId):
     '''Endpoint for get or delete an email.'''
     user = current_token.user
     email = Email.query.filter_by(id=emailId).first()
+    historylist_json = flask.request.headers.get('Authorization-History')
+    historylist = HistoryList(historylist_json)
+
     # If the event does not belong to the current user, abort.
     if not email:
         # Bad request
@@ -62,7 +70,16 @@ def get_or_delete_emails(emailId):
         # Forbidden
         flask.abort(403)
     if flask.request.method == 'GET':
-        return jsonify(email.as_dict)
+        # TODO 
+        # make it into function
+        new_history = History('/emails', 'GET')
+        historylist.append(new_history)
+        new_history_storage = historylist_to_storage_json(historylist, flask.request)
+        email.history = new_history_storage
+        resp = make_response(jsonify(email.as_dict))
+        resp.headers['Set-Authorization-History'] = historylist.to_json()
+        db.session.commit()
+        return resp
     else:
         db.session.delete(email)
         db.session.commit()
@@ -71,24 +88,33 @@ def get_or_delete_emails(emailId):
 @resource_bp.route('/emails', methods=['GET', 'POST'])
 @require_oauth_stateful()
 def list_or_insert_email():
-    '''Endpoint for list all the events or insert an new email.'''
+    '''Endpoint for list all the email or insert an new email.'''
     user = current_token.user
     if flask.request.method == 'GET':
         emails = Email.query.filter_by(user_id=user.id).all()
         email_json = []
         for email in emails:
-            email_json.append(email.as_dict)
+            this_dict = email.as_dict
+            # email_json.append({'id': this_dict['id']})
+            email_json.append(this_dict)
         return jsonify(user_id=user.id, results=email_json)
     else:
+        # generate new history
+        new_hist = History('/emails', 'POST')
+        new_hist_list = HistoryList()
+        new_hist_list.append(new_hist)
         email_request = flask.request.get_json()
         email = Email(
             user_id=user.id,
             title=email_request.get('title'),
             content=email_request.get('content'),
+            history=historylist_to_storage_json(new_hist_list, flask.request)
         )
         db.session.add(email)
         db.session.commit()
-        return jsonify(email.as_dict), 201
+        resp = make_response(jsonify(email.as_dict), 201)
+        resp.headers['Set-Authorization-History'] = new_hist_list.to_json()
+        return resp
 
 
 @resource_bp.route('/events/<uuid:eventId>', methods=['GET', 'DELETE'])

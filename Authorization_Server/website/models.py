@@ -90,8 +90,12 @@ class Email(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
     title = db.Column(db.String(40))
     content = db.Column(db.String(200))
+    # Add history in resource itself for now
+    history = db.Column(db.String(200))
 
     @property
     def as_dict(self):
        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
+# TODO
+# Add (obj_id/uri, history) storage, since validating history should be generic
