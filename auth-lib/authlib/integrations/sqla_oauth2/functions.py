@@ -12,7 +12,7 @@ from authlib.oauth2.stateful.validator_helper import (
     run_policy, build_request_JSON
 )
 import tempfile
-from wasmtime import Config, Engine, Linker
+from wasmtime import Config, Engine, Linker, Module
 from historylib.history import History
 from historylib.history_list import HistoryList
 
@@ -115,17 +115,11 @@ def create_bearer_token_validator(session, token_model):
 
     return _BearerTokenValidator
 
-def create_bearer_token_validator_stateful(session, token_model, client_model):
+def create_bearer_token_validator_stateful(wasm_linker, session, token_model, client_model, policy_model):
 
     from authlib.oauth2.stateful import BearerTokenValidatorStateful
 
     class _BearerTokenValidatorStateful(BearerTokenValidatorStateful):
-
-        # WASM initialization 
-        wasm_engine_cfg = Config()
-        wasm_engine = Engine(wasm_engine_cfg)
-        wasm_linker = Linker(wasm_engine)
-        wasm_linker.define_wasi()
 
         def authenticate_token(self, token_string):
             q = session.query(token_model)
@@ -136,51 +130,37 @@ def create_bearer_token_validator_stateful(session, token_model, client_model):
            
             q = session.query(client_model)
             client = q.filter_by(client_id=token.client_id).first()
-
-            policy_url = os.path.join(client.policy_endpoint, token.policy + ".wasm")
-
-            # TODO
-            # Add logic to check for history integrity
             
             history_json = request.headers.get('Authorization-History')
             historylist = HistoryList()
             if history_json:
                 historylist = HistoryList(history_json)
 
-            # Put policy program in tmp for now
-            with tempfile.TemporaryDirectory() as chroot:
-                # Download the program from program endpoint
-                # TODO: Don't use this method, put program directly in request
-                program_name = policy_url.split("/")[-1]
-                policy_file = os.path.join(chroot, policy_url.split("/")[-1])
-                response = requests.get(policy_url)
-                if response.status_code == 200:
-                    policy_data = response.content
-                    with open(policy_file, "wb") as file:
-                        file.write(policy_data)
-                else:
-                    raise BadPolicyEndpointError()
+            # TODO
+            # Add logic to check for history integrity
+            # m = hashlib.sha256()
+            # m.update(hist)
+            # real_hist_hash = m.hexdigest()
+            # if real_hist_hash != token.hist:
+                # raise HistoryHashMismatchError()
 
-                # Check hash truthfulness
-                # TODO: Add specify which hashing function to use.
-                m = hashlib.sha256()
-                m.update(policy_data)
-                real_policy_hash = m.hexdigest()
-                if real_policy_hash != token.policy:
-                    raise PolicyHashMismatchError()
+            # get module from some db
+            policy_q = session.query(policy_model)
+            policy = policy_q.filter_by(policy_hash=token.policy).first()
+            policy_module = Module.deserialize(wasm_linker.engine, policy.serialized_module)
 
-                request_JSON = build_request_JSON(request)
+            request_JSON = build_request_JSON(request)
 
-                # TODO: Build JSON data for history
-                try:
-                    # run the policy, accept/deny based on output
-                    result = run_policy(self.wasm_linker, policy_file, program_name, request_JSON, historylist.to_json())
-                except Exception as e:
-                    print(e)
-                    raise PolicyCrashedError()
+            # TODO: Build JSON data for history
+            try:
+                # run the policy, accept/deny based on output
+                result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, historylist.to_json())
+            except Exception as e:
+                print(e)
+                raise PolicyCrashedError()
 
-                if not result:
-                    raise PolicyFailedError()
+            if not result:
+                raise PolicyFailedError()
                 
 
     return _BearerTokenValidatorStateful

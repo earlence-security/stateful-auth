@@ -31,19 +31,13 @@ def build_request_JSON(request):
     json_data = json.dumps(request_data)
     return json_data
 
-def run_policy(linker, policy_addr, program_name, request_str, history_str):
+def run_policy(linker, policy_module, policy_hash, request_str, history_str):
     # Design: https://docs.rs/wasmtime/latest/wasmtime/#example-architecture
 
-    # Module is the unit of deployment, loading, and compilation
-    # Module.from_file compiles .wasm binary into wasm Module
-    # Most expensive operation
-    # we should consider caching Modules! 
-    policy_module = Module.from_file(linker.engine, policy_addr)
-
     config = WasiConfig()
-    config.argv = (program_name, request_str, history_str)
+    config.argv = (policy_hash, request_str, history_str)
     config.preopen_dir(".", "/")
-    print("running policy with hash: " + program_name)
+    print("running policy with hash: " + policy_hash)
     with tempfile.TemporaryDirectory() as chroot:
 
         out_log = os.path.join(chroot, "out.log")

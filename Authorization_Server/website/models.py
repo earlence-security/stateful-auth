@@ -58,6 +58,12 @@ class OAuth2Token(db.Model, OAuth2TokenMixin):
             return False
         expires_at = self.issued_at + self.expires_in * 2
         return expires_at >= time.time()
+    
+
+class Policy(db.Model):
+    policy_hash = db.Column(db.String(255), primary_key=True)
+    serialized_module = db.Column(db.LargeBinary, unique=True)
+
 
 
 ######################

@@ -1,17 +1,22 @@
 import time
+import os
 import flask
-from flask import Blueprint, request, session, url_for
+import requests
+from flask import Blueprint, current_app, request, session, url_for
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
 from authlib.oauth2 import OAuth2Error
 from authlib.oauth2.rfc6750 import UnregisteredPolicyError
-from .models import db, User, OAuth2Client
+from .models import db, User, OAuth2Client, Policy
 from .oauth2 import authorization
 from .utils import current_user, split_by_crlf
+from wasmtime import Linker, Module, Store, WasiConfig
 
 
 auth_bp = Blueprint('auth', __name__)
 
+# TODO move into config
+policy_directory = os.path.join(os.getcwd(), "policies")
 
 @auth_bp.route('/', methods=('GET', 'POST'))
 def home():
@@ -75,6 +80,34 @@ def create_client():
         "policy_endpoint": form["policy_endpoint"],
     }
     client.set_client_metadata(client_metadata)
+
+    # get program from endpoint and store in db
+    for program_hash in client_metadata['policy_hashes']:
+        program_name = client_metadata['policy_endpoint'].split("/")[-1]
+        policy_url = os.path.join(client.policy_endpoint, program_hash + ".wasm")
+        policy_file = os.path.join(policy_directory, policy_url.split("/")[-1])
+        response = requests.get(policy_url)
+        if response.status_code == 200:
+            policy_data = response.content
+            with open(policy_file, "wb") as file:
+                file.write(policy_data)
+        else:
+            raise Exception("Policy download unsuccessful") 
+
+        # Compile the wasm files to Modules
+        policy_module = Module.from_file(authorization.wasm_engine, policy_file)
+
+        # serialize and store in db
+        existing_policy = db.session.query(Policy).filter_by(policy_hash=program_hash).first()
+        if existing_policy:
+            existing_policy.serialized_module = policy_module.serialize()
+        else:
+            policy = Policy(
+                policy_hash = program_hash,
+                serialized_module = policy_module.serialize()
+            )
+            db.session.add(policy)
+        db.session.commit()
 
     if form['token_endpoint_auth_method'] == 'none':
         client.client_secret = ''

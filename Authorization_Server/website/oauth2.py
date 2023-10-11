@@ -1,5 +1,6 @@
 from authlib.integrations.flask_oauth2 import (
     AuthorizationServer,
+    AuthorizationServerStateful,
     ResourceProtector,
     ResourceProtectorStateful,
 )
@@ -13,7 +14,8 @@ from authlib.integrations.sqla_oauth2 import (
 from authlib.oauth2.rfc6749 import grants
 from authlib.oauth2.rfc7636 import CodeChallenge
 from .models import db, User
-from .models import OAuth2Client, OAuth2AuthorizationCode, OAuth2Token
+from .models import OAuth2Client, OAuth2AuthorizationCode, OAuth2Token, Policy
+from wasmtime import Config, Engine, Linker
 
 
 class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
@@ -77,11 +79,19 @@ class RefreshTokenGrant(grants.RefreshTokenGrant):
         db.session.commit()
 
 
+# WASM initialization 
+wasm_engine_cfg = Config()
+wasm_engine = Engine(wasm_engine_cfg)
+wasm_linker = Linker(wasm_engine)
+wasm_linker.define_wasi()
+
 query_client = create_query_client_func(db.session, OAuth2Client)
 save_token = create_save_token_func(db.session, OAuth2Token)
-authorization = AuthorizationServer(
+authorization = AuthorizationServerStateful(
     query_client=query_client,
     save_token=save_token,
+    wasm_engine=wasm_engine,
+    wasm_linker=wasm_linker,
 )
 
 
@@ -109,5 +119,5 @@ def config_oauth(app):
 
     # protect resource stateful
     # our stateful validator
-    bearer_cls_stateful = create_bearer_token_validator_stateful(db.session, OAuth2Token, OAuth2Client)
+    bearer_cls_stateful = create_bearer_token_validator_stateful(authorization.wasm_linker, db.session, OAuth2Token, OAuth2Client, Policy)
     require_oauth_stateful.register_token_validator(bearer_cls_stateful())
