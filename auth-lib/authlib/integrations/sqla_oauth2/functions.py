@@ -1,13 +1,18 @@
 import time
 from authlib.oauth2.rfc6750.errors import (
-    PolicyFailedError, BadPolicyEndpointError, PolicyHashMismatchError, PolicyCrashedError
+    PolicyFailedError, BadPolicyEndpointError, PolicyHashMismatchError, PolicyCrashedError, InvalidHistoryError
 )
 import os
 import requests
 import hashlib
 import json
-from flask import jsonify
 import time
+import tempfile
+
+from flask import jsonify
+from wasmtime import Config, Engine, Linker
+
+from authlib.oauth2 import OAuth2Error
 from authlib.oauth2.stateful.validator_helper import (
     run_policy, build_request_JSON
 )
@@ -15,6 +20,7 @@ import tempfile
 from wasmtime import Config, Engine, Linker, Module
 from historylib.history import History
 from historylib.history_list import HistoryList
+from historylib.server_utils import validate_history
 
 def create_query_client_func(session, client_model):
     """Create an ``query_client`` function that can be used in authorization
@@ -127,22 +133,28 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
         
         # extra stateful checks 
         def validate_token_stateful(self, token, scopes, request):
-           
+
             q = session.query(client_model)
             client = q.filter_by(client_id=token.client_id).first()
-            
-            history_json = request.headers.get('Authorization-History')
-            historylist = HistoryList()
-            if history_json:
-                historylist = HistoryList(history_json)
 
-            # TODO
-            # Add logic to check for history integrity
-            # m = hashlib.sha256()
-            # m.update(hist)
-            # real_hist_hash = m.hexdigest()
-            # if real_hist_hash != token.hist:
-                # raise HistoryHashMismatchError()
+            # Check for history integrity
+            if not validate_history(session):
+                raise InvalidHistoryError()
+
+            policy_url = os.path.join(client.policy_endpoint, token.policy + ".wasm")
+            # Put policy program in tmp for now
+            with tempfile.TemporaryDirectory() as chroot:
+                # Download the program from program endpoint
+                # TODO: Don't use this method, put program directly in request
+                program_name = policy_url.split("/")[-1]
+                policy_file = os.path.join(chroot, policy_url.split("/")[-1])
+                response = requests.get(policy_url)
+                if response.status_code == 200:
+                    policy_data = response.content
+                    with open(policy_file, "wb") as file:
+                        file.write(policy_data)
+                else:
+                    raise BadPolicyEndpointError()
 
             # get module from some db
             policy_q = session.query(policy_model)
@@ -150,11 +162,12 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
             policy_module = Module.deserialize(wasm_linker.engine, policy.serialized_module)
 
             request_JSON = build_request_JSON(request)
-
+            history_list_str = request.headers.get('Authorization-History')
+            history_list = HistoryList() if not history_list_str else HistoryList(history_list_str)
             # TODO: Build JSON data for history
             try:
                 # run the policy, accept/deny based on output
-                result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, historylist.to_json())
+                result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list.to_json())
             except Exception as e:
                 print(e)
                 raise PolicyCrashedError()

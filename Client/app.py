@@ -120,7 +120,7 @@ def make_request():
             if response.status_code !=  403:
                 response.raise_for_status()
 
-            if response.text != "":
+            if response.text:
                 json_object = json.loads(response.content)
                 result = json.dumps(json_object, indent=2)
             
@@ -130,7 +130,8 @@ def make_request():
                 obj_id = input_api_append
                 if selected_method == 'POST':
                     obj_id = json_object['id']
-                resp_hist_list = HistoryList(response.headers['Set-Authorization-History'])
+                print(response.headers.get('Set-Authorization-History'))
+                resp_hist_list = HistoryList(response.headers.get('Set-Authorization-History'))
                 history_to_file(resp_hist_list, obj_id, history_path, token["access_token"])
 
         except Exception as e:

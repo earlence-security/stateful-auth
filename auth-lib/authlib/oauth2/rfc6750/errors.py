@@ -15,7 +15,7 @@ from ..base import OAuth2Error
 
 __all__ = [
     'InvalidTokenError', 'InsufficientScopeError', 'UnregisteredPolicyError', 'PolicyFailedError', 'BadPolicyEndpointError',
-    'PolicyHashMismatchError', 'PolicyCrashedError'
+    'PolicyHashMismatchError', 'PolicyCrashedError', 'InvalidHistoryError'
 ]
 
 
@@ -114,3 +114,10 @@ class PolicyCrashedError(OAuth2Error):
     error = 'policy_crashed'
     description = 'policy execution unsuccessful'
     status_code = 403
+
+class InvalidHistoryError(OAuth2Error):
+    """The history is invalid.
+    """
+    error = 'invalid_history'
+    description = 'The history is invalid.'
+    status_code = 400

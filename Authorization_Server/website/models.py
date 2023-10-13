@@ -10,8 +10,6 @@ from authlib.integrations.sqla_oauth2 import (
 import uuid 
 
 db = SQLAlchemy()
-
-
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(40), unique=True)
@@ -42,7 +40,6 @@ class OAuth2AuthorizationCode(db.Model, OAuth2AuthorizationCodeMixin):
     user_id = db.Column(
         db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
     user = db.relationship('User')
-    
 
 
 class OAuth2Token(db.Model, OAuth2TokenMixin):
@@ -64,6 +61,20 @@ class Policy(db.Model):
     policy_hash = db.Column(db.String(255), primary_key=True)
     serialized_module = db.Column(db.LargeBinary, unique=True)
 
+
+
+class HistoryListHash(db.Model):
+    """A simple history model for users to record history of resources.
+    Each object has one history for each token that has accessed it."""
+    __tablename__ = "history"
+
+    object_id = db.Column(db.Uuid, primary_key=True, default=uuid.uuid4)
+    access_token = db.Column(db.String(255), primary_key=True)
+    history_list_hash = db.Column(db.String(255), nullable=False)
+
+    @property
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 ######################
@@ -96,8 +107,6 @@ class Email(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
     title = db.Column(db.String(40))
     content = db.Column(db.String(200))
-    # Add history in resource itself for now
-    history = db.Column(db.String(200))
 
     @property
     def as_dict(self):
