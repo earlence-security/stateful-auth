@@ -71,8 +71,6 @@ def get_or_delete_emails(emailId):
         # Forbidden
         make_response('forbidden', 403)
     if flask.request.method == 'GET':
-        # TODO 
-        # make it into function
         resp = make_response(jsonify(email.as_dict))
         return resp
     else:

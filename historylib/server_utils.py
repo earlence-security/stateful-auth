@@ -81,8 +81,9 @@ def update_history(session):
                 # TODO: if "DELETE", delete the history list hash
                 object_id = list(kwargs.values())[0]
                 history_list_hash = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
-                session.delete(history_list_hash)
-                session.commit()
+                if history_list_hash:
+                    session.delete(history_list_hash)
+                    session.commit()
                 resp.headers['Set-Authorization-History'] = ''
                 return resp
             else:
