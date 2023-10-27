@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import flask
 import time
-from datetime import datetime
-from flask import Blueprint, jsonify, make_response
-from authlib.integrations.flask_oauth2 import current_token
 import json
+from uuid import UUID
+from datetime import datetime
+from flask import Blueprint, Response, jsonify, make_response
 
-from authlib.integrations.flask_oauth2 import current_token
 from .oauth2 import require_oauth
 from .oauth2 import require_oauth_stateful
 from .models import db, Event, Email
+from authlib.integrations.flask_oauth2 import current_token
 
 from historylib.history import History
 from historylib.history_list import HistoryList
@@ -56,32 +58,30 @@ def send_money():
 @resource_bp.route('/emails/<uuid:emailId>', methods=['GET', 'DELETE'])
 @require_oauth_stateful()
 @update_history(session=db.session)
-def get_or_delete_emails(emailId):
+def get_or_delete_emails(emailId: UUID) -> Response | tuple[Response, UUID | list[UUID]]:
     '''Endpoint for get or delete an email.'''
     user = current_token.user
     email = Email.query.filter_by(id=emailId).first()
-    historylist_json = flask.request.headers.get('Authorization-History')
-    historylist = HistoryList(historylist_json)
 
     # If the event does not belong to the current user, abort.
     if not email:
         # Bad request
-        make_response('bad request', 400)
+        return make_response('bad request', 400)
     if email.user_id != user.id:
         # Forbidden
-        make_response('forbidden', 403)
+        return make_response('forbidden', 403)
     if flask.request.method == 'GET':
         resp = make_response(jsonify(email.as_dict))
-        return resp
+        return resp, email.id
     else:
         db.session.delete(email)
         db.session.commit()
-        return make_response('deleted', 204)
+        return make_response('deleted', 204), email.id
 
 @resource_bp.route('/emails', methods=['GET', 'POST'])
 @require_oauth_stateful()
 @update_history(session=db.session)
-def list_or_insert_email():
+def list_or_insert_email() -> Response | tuple[Response, UUID | list[UUID]]:
     '''Endpoint for list all the email or insert an new email.'''
     user = current_token.user
     if flask.request.method == 'GET':
@@ -91,7 +91,8 @@ def list_or_insert_email():
             this_dict = email.as_dict
             # email_json.append({'id': this_dict['id']})
             email_json.append(this_dict)
-        return make_response(jsonify(user_id=user.id, results=email_json))
+        resp = make_response(jsonify(user_id=user.id, results=email_json))
+        return resp, [e.id for e in emails]
     else:
         email_request = flask.request.get_json()
         email = Email(
@@ -102,55 +103,56 @@ def list_or_insert_email():
         db.session.add(email)
         db.session.commit()
         resp = make_response(jsonify(email.as_dict), 201)
-        return resp
-
+        return resp, email.id
 
 @resource_bp.route('/events/<uuid:eventId>', methods=['GET', 'DELETE'])
 @require_oauth('profile')  # TODO: Replace scope w/ other value (eg. "events")
-def get_or_delete_event(eventId):
+@update_history(session=db.session)
+def get_or_delete_event(eventId: UUID) -> Response | tuple[Response, UUID | list[UUID]]:
     '''Endpoint for get or delete an event.'''
     user = current_token.user
     event = Event.query.filter_by(id=eventId).first()
     # If the event does not belong to the current user, abort.
     if not event:
         # Bad request
-        flask.abort(400)
+        return make_response('bad request', 400)
     if event.user_id != user.id:
         # Forbidden
-        flask.abort(403)
+        return make_response('forbidden', 403)
     if flask.request.method == 'GET':
-        return jsonify(event.as_dict)
+        return make_response(jsonify(event.as_dict)), event.id
     else:
         db.session.delete(event)
         db.session.commit()
-        return 'deleted', 204
+        return make_response('deleted', 204), event.id
 
 @resource_bp.route('/events', methods=['GET', 'POST'])
 @require_oauth('profile')  # TODO: Replace scope w/ other value (eg. "events")
-def list_or_insert_event():
+@update_history(session=db.session)
+def list_or_insert_event() -> Response | tuple[Response, UUID | list[UUID]]:
     '''Endpoint for list all the events or insert an new event.'''
     user = current_token.user
     if flask.request.method == 'GET':
         events = Event.query.filter_by(user_id=user.id).all()
-        return jsonify([(e.as_dict) for e in events])
+        return make_response(jsonify([(e.as_dict) for e in events])), [e.id for e in events]
     else:
-        form = flask.request.form
-        if 'date' in form:
+        data = flask.request.get_json()
+        if 'date' in data:
             try:
-                t = datetime.fromisoformat(form.get('time')).timestamp()
+                t = datetime.fromisoformat(data.get('time')).timestamp()
             except:
                 # Bad request
-                return "Invalid time format. Please use ISO format.", 400
+                return make_response("Invalid time format. Please use ISO format.", 400)
         else:
             t = time.time()
         event = Event(
             user_id=user.id,
-            name=form.get('name', default='(No title)'),
-            description=form.get('description', default=''),
+            name=data.get('name', '(No title)'),
+            description=data.get('description', ''),
             time=t,
-            location=form.get('location', default=''),
+            location=data.get('location', ''),
         )
         db.session.add(event)
         db.session.commit()
         print(event.as_dict)
-        return jsonify(event.as_dict), 201
+        return make_response(jsonify(event.as_dict), 201), event.id

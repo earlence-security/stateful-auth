@@ -1,7 +1,6 @@
 import functools
 import flask
-from flask import Request
-from uuid import UUID
+from flask import Request, Response
 
 from .history import History
 from .history_list import HistoryList
@@ -39,21 +38,22 @@ def update_history(session):
     def wrapper(f):
         """Decorator for updating history list hash in the database and stored in user-side."""
         @functools.wraps(f)
-        def decorated(*args, **kwargs):
+        def decorated(*args, **kwargs) -> Response:
             # Policy check and resource API call will happen in the function `f`.
-            resp = f(*args, **kwargs)
-            print(resp.get_data())
+            ret = f(*args, **kwargs)
+            if not isinstance(ret, tuple) or ret[0].status_code >= 400 :
+                # Resource API call failed, do nothing.
+                return ret
+            # Resource APIs return a tuple of (response, object_ids).
+            resp = ret[0]
+            ids = ret[1] if isinstance(ret[1], list) else [ret[1]]
             request = flask.request
             token = get_token_from_request(request)
-            if resp.status_code >= 400:
-                # Resource API call failed, do nothing.
-                return resp
             # If create, update, or get an object, we should update the history list hash.
-            # NOTE: This might be wrong. Maybe we should restrict that only "id" is used as argument in the resource APIs.
-            if request.method == 'POST' or (request.method == 'GET' and kwargs):
+            if (request.method == 'POST' or request.method == 'GET') and len(ids) == 1:
                 # Create new history entry and append to history list
+                object_id = ids[0]
                 new_history = History(request.path, request.method)
-                object_id = list(kwargs.values())[0] if kwargs else UUID(resp.get_json()['id'])
                 history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
 
                 if history_list_hash_row:
@@ -77,9 +77,8 @@ def update_history(session):
                 # Add updated history list to the response header
                 resp.headers['Set-Authorization-History'] = history_list.to_json()
                 return resp
-            elif request.method == 'DELETE':
-                # TODO: if "DELETE", delete the history list hash
-                object_id = list(kwargs.values())[0]
+            elif request.method == 'DELETE' and len(ids) == 1:
+                object_id = ids[0]
                 history_list_hash = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
                 if history_list_hash:
                     session.delete(history_list_hash)

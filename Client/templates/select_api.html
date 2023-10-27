@@ -35,6 +35,7 @@
             <option value="http://127.0.0.1:5000/api/me2">api/me2</option>
             <option value="http://127.0.0.1:5000/api/send-money">api/send-money</option>
             <option value="http://127.0.0.1:5000/api/emails">api/emails</option>
+            <option value="http://127.0.0.1:5000/api/events">api/events</option>
         </select>
         
         <br>
@@ -51,6 +52,10 @@
         <label for="value">Value:</label>
         <input type="text" name="value" id="value">
         <button type="button" onclick="addKeyValue()">To JSON</button>
+        
+        <br>
+        <label for="datetime">Select time value if key is "time":</label>
+        <input type="datetime-local" name="datetime" id="datetime">
 
         <br>
         <label for="request_body">Request Body:</label>
@@ -85,10 +90,12 @@
             // number hack for now
             if (isNaN(valueInput.value)){
                 value = valueInput.value;
-            }
-            else {
+            } else if (key == "time") {
+                value = document.getElementById("datetime").value;
+            } else {
                 value = parseInt(valueInput.value);
             }
+            
 
             if (key && value) {
                 keyValuePairs[key] = value;

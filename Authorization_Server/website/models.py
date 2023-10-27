@@ -55,12 +55,11 @@ class OAuth2Token(db.Model, OAuth2TokenMixin):
             return False
         expires_at = self.issued_at + self.expires_in * 2
         return expires_at >= time.time()
-    
+
 
 class Policy(db.Model):
     policy_hash = db.Column(db.String(255), primary_key=True)
     serialized_module = db.Column(db.LargeBinary, unique=True)
-
 
 
 class HistoryListHash(db.Model):
@@ -98,19 +97,18 @@ class Event(db.Model):
 
     @property
     def as_dict(self):
-       return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 class Email(db.Model):
     id = db.Column(db.Uuid, primary_key=True, default=uuid.uuid4)
     # Mark which user this event belongs to
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
+    user = db.relationship('User')
+    # Email information
     title = db.Column(db.String(40))
     content = db.Column(db.String(200))
 
     @property
     def as_dict(self):
-       return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
-# TODO
-# Add (obj_id/uri, history) storage, since validating history should be generic
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
