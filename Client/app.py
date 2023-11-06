@@ -15,8 +15,8 @@ sys.path.append(auth_lib_dir)
 sys.path.append(parent_dir)
 
 from authlib.integrations.flask_client import OAuth
-from historylib.client_utils import get_history, history_to_file, delete_history_file
-from historylib.history_list import HistoryList
+from historylib.client_utils import get_history, history_to_file, delete_history_file, get_batchhistory, batch_history_to_file
+from historylib.batch_history_list import BatchHistoryList
 
 app = Flask(__name__)
 app.secret_key = 'secret'
@@ -94,15 +94,16 @@ def make_request():
         
         headers = {
             'Authorization': f'Bearer {token["access_token"]}',
+            'Authorization-History': '',
         }
 
+        objs_to_be_accessed=[]
         # get history attached with this obj
         if input_api_append:
-            obj_history = get_history(input_api_append, history_path, token["access_token"])
+            objs_to_be_accessed = [input_api_append]
+            obj_history = get_batchhistory(objs_to_be_accessed, history_path, token["access_token"])
             headers['Authorization-History'] = obj_history.to_json()
-        else:
-            headers['Authorization-History'] = ""
-
+        
         try:
             if selected_method == 'GET':
                 response = requests.get(target_api, headers=headers)
@@ -110,6 +111,11 @@ def make_request():
             if selected_method == 'POST':
                 headers['Content-Type'] = 'application/json'
                 request_body = request.form.get('request_body')
+                body_json = json.loads(request_body)
+                obj_ids = body_json.get('ids')
+                if obj_ids:
+                    obj_history = get_batchhistory(obj_ids, history_path, token["access_token"])
+                    headers['Authorization-History'] = obj_history.to_json()
                 response = requests.post(target_api, headers=headers, data=request_body) 
 
             if selected_method == 'DELETE':
@@ -127,12 +133,9 @@ def make_request():
             # store new history
             new_auth_history = response.headers.get('Set-Authorization-History')
             if new_auth_history:
-                obj_id = input_api_append
-                if selected_method == 'POST':
-                    obj_id = json_object['id']
                 print(response.headers.get('Set-Authorization-History'))
-                resp_hist_list = HistoryList(response.headers.get('Set-Authorization-History'))
-                history_to_file(resp_hist_list, obj_id, history_path, token["access_token"])
+                resp_hist_list = BatchHistoryList(json_str=response.headers.get('Set-Authorization-History'))
+                batch_history_to_file(resp_hist_list, history_path, token["access_token"])
 
         except Exception as e:
             result = {'error': str(e)}

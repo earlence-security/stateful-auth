@@ -6,19 +6,17 @@ import json
 from .history import History
 import hashlib
 
-# Server         : Store (new HistoryList -> json -> hash)
-# Server response: new HistoryList -> json -> Client
-# Client request : json -> Server
-# Server         : json -> hash ==? stored hash
-# Server         : json -> HistoryList -> add new history -> new HistoryList
-# repeat
+# {
+#   obj_id1 : [history_entry1, history_entry2, ...]
+# }
 class HistoryList:
-
-    def __init__(self, json_str=None):
+    # takes an obj_id and a json representation of a list of history objects
+    def __init__(self, obj_id="", json_str=None):
+        self.obj_id = str(obj_id)
+        # list of History objects
         self.entries = []
         if json_str != None:
-            history_list_dict = json.loads(json_str)
-            history_dict_list = history_list_dict["history"]
+            history_dict_list = json.loads(json_str)
             for hist in history_dict_list:
                 self.entries.append(History.from_dict(hist))
 
@@ -49,12 +47,12 @@ class HistoryList:
     # However this shouldn't be a problem if client stores the exact json it received?
     def to_json(self):
         history_dict_list = [hist.to_dict() for hist in self.entries]
-        result_dict = {"history": history_dict_list}
+        result_dict = {self.obj_id: history_dict_list}
         return json.dumps(result_dict)
     
     def to_dict(self):
         history_dict_list = [hist.to_dict() for hist in self.entries]
-        result_dict = {"history": history_dict_list}
+        result_dict = {self.obj_id: history_dict_list}
         return result_dict
 
     # get hash of a list of histories
@@ -63,33 +61,3 @@ class HistoryList:
         return result
     
 
-# sample usage
-if __name__ == "__main__":
-    h1 = History(api="http://127.0.0.1:5000/api/send-money", method="POST")
-    print(h1)
-
-    h2 = History(api="http://127.0.0.1:5000/api/emails", method="GET")
-    print(h2)
-
-    time.sleep(0.1)
-
-    h3 = History(api="http://127.0.0.1:5000/api/emails", method="GET")
-    print(h3)
-
-    hlist = HistoryList()
-    hlist.append(h1)
-    print(hlist)
-    hlist.append(h2)
-    print(hlist)
-    hlist.append(h3)
-    print(hlist)
-
-
-    hlhash = hlist.to_hash()
-    print(hlhash)
-
-    hlreconstruct = HistoryList(hlist.to_json())
-    print(hlreconstruct)
-
-    hlreconstructhash = hlreconstruct.to_hash()
-    print(hlreconstructhash)

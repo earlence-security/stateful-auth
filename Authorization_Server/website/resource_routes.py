@@ -89,10 +89,10 @@ def list_or_insert_email() -> Response | tuple[Response, UUID | list[UUID]]:
         email_json = []
         for email in emails:
             this_dict = email.as_dict
-            # email_json.append({'id': this_dict['id']})
-            email_json.append(this_dict)
+            email_json.append({'id': this_dict['id']})
+            #email_json.append(this_dict)
         resp = make_response(jsonify(user_id=user.id, results=email_json))
-        return resp, [e.id for e in emails]
+        return resp
     else:
         email_request = flask.request.get_json()
         email = Email(
@@ -104,6 +104,29 @@ def list_or_insert_email() -> Response | tuple[Response, UUID | list[UUID]]:
         db.session.commit()
         resp = make_response(jsonify(email.as_dict), 201)
         return resp, email.id
+    
+@resource_bp.route('/emails/batch-get', methods=['POST'])
+@require_oauth_stateful()
+@update_history(session=db.session)
+def batch_get_email() -> Response | tuple[Response, UUID | list[UUID]]:
+    '''Endpoint for list all the email or insert an new email.'''
+    user = current_token.user
+    if flask.request.method == 'POST':
+        user = current_token.user
+        req = flask.request.get_json()
+        email_ids = req.get('ids')
+        ret_emails = []
+        ret_emials_dicts = []
+        for emailId in email_ids:
+            emailId = UUID(emailId)
+            email = Email.query.filter_by(id=emailId).first()
+            # If the event does not belong to the current user, abort.
+            if email and email.user_id == user.id:
+                ret_emails.append(email)
+                ret_emials_dicts.append(email.as_dict)
+        resp = make_response(jsonify(user_id=user.id, results=ret_emials_dicts))
+        return resp, [e.id for e in ret_emails]
+    
 
 @resource_bp.route('/events/<uuid:eventId>', methods=['GET', 'DELETE'])
 @require_oauth('profile')  # TODO: Replace scope w/ other value (eg. "events")

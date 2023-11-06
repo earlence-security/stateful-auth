@@ -20,11 +20,7 @@ struct History {
     timestamp: f64,
 }
 
-#[derive(Serialize, Deserialize)]
-struct HistoryList {
-    history: Vec<History>
-}
-
+type HistoryMap = HashMap<String, Vec<History>>;
 
 //TODO: add error handling
 fn main() {
@@ -33,14 +29,16 @@ fn main() {
     let hist_str = &args[2];
 
     let parsed_req: Request = read_json(json_str);
-    let parsed_hist: HistoryList = read_history(hist_str);
+    let parsed_hist: HistoryMap = read_history(hist_str);
 
     // policy
     if parsed_req.uri.starts_with("http://127.0.0.1:5000/api/emails") && parsed_req.method == "DELETE"{
-        for entry in &parsed_hist.history {
-            if entry.method == "POST" {
-                println!("Accept");
-                return
+        for (obj_id, history) in parsed_hist {
+            for entry in history {
+                if entry.method == "POST" {
+                    println!("Accept");
+                    return
+                }
             }
         }
         println!("Deny");
@@ -57,8 +55,8 @@ fn read_json(json_str: &str) -> Request {
     return v;
 }
 
-fn read_history(json_str: &str) -> HistoryList {
+fn read_history(json_str: &str) -> HistoryMap {
     // Parse the string of data into serde_json::Value.
-    let v: HistoryList = serde_json::from_str(json_str).unwrap();
+    let v: HistoryMap = serde_json::from_str(json_str).unwrap();
     return v;
 }

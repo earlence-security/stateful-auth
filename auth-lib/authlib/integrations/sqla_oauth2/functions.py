@@ -20,6 +20,7 @@ import tempfile
 from wasmtime import Config, Engine, Linker, Module
 from historylib.history import History
 from historylib.history_list import HistoryList
+from historylib.batch_history_list import BatchHistoryList
 from historylib.server_utils import validate_history
 
 def create_query_client_func(session, client_model):
@@ -139,22 +140,8 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
 
             # Check for history integrity
             if not validate_history(session):
+                print("!!!!!!!!!!!!!!!invalid history!!!!!!!!!!!!!!!!!!")
                 raise InvalidHistoryError()
-
-            policy_url = os.path.join(client.policy_endpoint, token.policy + ".wasm")
-            # Put policy program in tmp for now
-            with tempfile.TemporaryDirectory() as chroot:
-                # Download the program from program endpoint
-                # TODO: Don't use this method, put program directly in request
-                program_name = policy_url.split("/")[-1]
-                policy_file = os.path.join(chroot, policy_url.split("/")[-1])
-                response = requests.get(policy_url)
-                if response.status_code == 200:
-                    policy_data = response.content
-                    with open(policy_file, "wb") as file:
-                        file.write(policy_data)
-                else:
-                    raise BadPolicyEndpointError()
 
             # get module from some db
             policy_q = session.query(policy_model)
@@ -163,7 +150,7 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
 
             request_JSON = build_request_JSON(request)
             history_list_str = request.headers.get('Authorization-History')
-            history_list = HistoryList() if not history_list_str else HistoryList(history_list_str)
+            history_list = BatchHistoryList() if not history_list_str else BatchHistoryList(json_str=history_list_str)
             # TODO: Build JSON data for history
             try:
                 # run the policy, accept/deny based on output
