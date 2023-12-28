@@ -12,10 +12,10 @@ import hashlib
 class HistoryList:
     # takes an obj_id and a json representation of a list of history objects
     def __init__(self, obj_id="", json_str=None):
-        self.obj_id = str(obj_id)
+        self.obj_id: str = str(obj_id)
         # list of History objects
-        self.entries = []
-        if json_str != None:
+        self.entries: list[History] = []
+        if json_str:
             history_dict_list = json.loads(json_str)
             for hist in history_dict_list:
                 self.entries.append(History.from_dict(hist))

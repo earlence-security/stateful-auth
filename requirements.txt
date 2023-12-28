@@ -3,3 +3,4 @@ Flask-SQLAlchemy
 requests
 python-dotenv
 wasmtime
+pycryptodome

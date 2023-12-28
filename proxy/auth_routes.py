@@ -5,18 +5,16 @@ import requests
 from flask import Blueprint, current_app, request, session, url_for
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
+from werkzeug.utils import secure_filename
 from authlib.oauth2 import OAuth2Error
 from authlib.oauth2.rfc6750 import UnregisteredPolicyError
-from .models import db, User, OAuth2Client, Policy
-from .oauth2 import authorization
-from .utils import current_user, split_by_crlf
+from proxy.models import db, User, OAuth2Client, Policy
+from proxy.oauth2 import authorization
+from proxy.utils import current_user, split_by_crlf
 from wasmtime import Linker, Module, Store, WasiConfig
 
 
 auth_bp = Blueprint('auth', __name__)
-
-# TODO move into config
-policy_directory = os.path.join(os.getcwd(), "policies")
 
 @auth_bp.route('/', methods=('GET', 'POST'))
 def home():
@@ -79,40 +77,63 @@ def create_client():
         # the endpoint for getting policies
         "policy_endpoint": form["policy_endpoint"],
     }
-    client.set_client_metadata(client_metadata)
+
+    policy_files = []
 
     # get program from endpoint and store in db
     for program_hash in client_metadata['policy_hashes']:
         program_name = client_metadata['policy_endpoint'].split("/")[-1]
         policy_url = os.path.join(client.policy_endpoint, program_hash + ".wasm")
-        policy_file = os.path.join(policy_directory, policy_url.split("/")[-1])
+        policy_file = os.path.join(current_app.config['UPLOAD_FOLDER'], policy_url.split("/")[-1])
         response = requests.get(policy_url)
         if response.status_code == 200:
             policy_data = response.content
             with open(policy_file, "wb") as file:
                 file.write(policy_data)
+            policy_files.append(policy_file)
         else:
-            raise Exception("Policy download unsuccessful") 
+            raise Exception("Policy download unsuccessful")
 
+    # Get policy WASM file in either way:
+    #   1. From the policy endpoint served by the client
+    #   2. From file uploading
+    if 'policy_wasm' in request.files and request.files['policy_wasm'].filename and allowed_file(request.files['policy_wasm'].filename):
+        # Save the WASM file
+        file = request.files['policy_wasm']
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Append the file list for storing to DB
+        policy_files.append(filepath)
+
+        print(f"Saved file {filename}")
+        # Record the hash value in client_metadata['policy_hashes']
+        policy_hash = filename.split('.')[0]
+        client_metadata['policy_hashes'].append(policy_hash)
+
+    for f in policy_files:
         # Compile the wasm files to Modules
-        policy_module = Module.from_file(authorization.wasm_engine, policy_file)
-
+        policy_module = Module.from_file(authorization.wasm_engine, f)
+        policy_hash = filename.split('.')[0]
         # serialize and store in db
-        existing_policy = db.session.query(Policy).filter_by(policy_hash=program_hash).first()
+        existing_policy = db.session.query(Policy).filter_by(policy_hash=policy_hash).first()
         if existing_policy:
             existing_policy.serialized_module = policy_module.serialize()
         else:
             policy = Policy(
-                policy_hash = program_hash,
+                policy_hash = policy_hash,
                 serialized_module = policy_module.serialize()
             )
             db.session.add(policy)
-        db.session.commit()
+            db.session.commit()
 
     if form['token_endpoint_auth_method'] == 'none':
         client.client_secret = ''
     else:
         client.client_secret = gen_salt(48)
+
+    client.set_client_metadata(client_metadata)
 
     db.session.add(client)
     db.session.commit()
@@ -141,6 +162,7 @@ def authorize():
         
         # TODO handle Null client
         client = OAuth2Client.query.filter_by(client_id=client_id).first()
+        print(f"{client=}")
         if policy not in client.client_metadata.get("policy_hashes"):
             return UnregisteredPolicyError().error, 403
 
@@ -170,3 +192,10 @@ def issue_token():
 @auth_bp.route('/oauth/revoke', methods=['POST'])
 def revoke_token():
     return authorization.create_endpoint_response('revocation')
+
+
+ALLOWED_EXTENSIONS = {'wasm'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

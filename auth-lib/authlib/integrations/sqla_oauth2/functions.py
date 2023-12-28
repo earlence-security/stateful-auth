@@ -122,7 +122,7 @@ def create_bearer_token_validator(session, token_model):
 
     return _BearerTokenValidator
 
-def create_bearer_token_validator_stateful(wasm_linker, session, token_model, client_model, policy_model):
+def create_bearer_token_validator_stateful(wasm_linker, session, token_model, client_model, policy_model, is_proxy=False):
 
     from authlib.oauth2.stateful import BearerTokenValidatorStateful
 
@@ -138,10 +138,16 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
             q = session.query(client_model)
             client = q.filter_by(client_id=token.client_id).first()
 
-            # Check for history integrity
-            if not validate_history(session):
-                print("!!!!!!!!!!!!!!!invalid history!!!!!!!!!!!!!!!!!!")
-                raise InvalidHistoryError()
+            if is_proxy:
+                from historylib.proxy_utils import validate_object_ids_proxy
+                if not validate_object_ids_proxy(session):
+                    print("!!!!!!!!!!!!!!! invalid object_id !!!!!!!!!!!!!!!!!!")
+                    raise InvalidHistoryError()
+            else:
+                # Check for history integrity
+                if not validate_history(session):
+                    print("!!!!!!!!!!!!!!! invalid history !!!!!!!!!!!!!!!!!!")
+                    raise InvalidHistoryError()
 
             # get module from some db
             policy_q = session.query(policy_model)
@@ -149,12 +155,18 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
             policy_module = Module.deserialize(wasm_linker.engine, policy.serialized_module)
 
             request_JSON = build_request_JSON(request)
-            history_list_str = request.headers.get('Authorization-History')
-            history_list = BatchHistoryList() if not history_list_str else BatchHistoryList(json_str=history_list_str)
-            # TODO: Build JSON data for history
+            if is_proxy:
+                # Get history list from server-side DB (only for proxy)
+                from historylib.proxy_utils import get_history_list_str_proxy
+                history_list_str = get_history_list_str_proxy(session)
+            else:
+                # Get history list from request header
+                history_list_str = request.headers.get('Authorization-History')
+                # history_list = BatchHistoryList() if not history_list_str else BatchHistoryList(json_str=history_list_str)
             try:
                 # run the policy, accept/deny based on output
-                result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list.to_json())
+                # result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list.to_json())
+                result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list_str)
             except Exception as e:
                 print(e)
                 raise PolicyCrashedError()

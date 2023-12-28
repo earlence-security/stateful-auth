@@ -1,0 +1,10 @@
+{% if token %}
+<pre>
+{{ token|tojson }}
+</pre>
+<a href="/logout">pop the token</a> <br />
+
+<a href="/make_request">send requests with this token</a>
+{% else %}
+<a href="/login">"Request a Token from Auth Server"</a>
+{% endif %}

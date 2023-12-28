@@ -1,0 +1,1 @@
+# Case Study of Joplin's Synchronization with Dropbox

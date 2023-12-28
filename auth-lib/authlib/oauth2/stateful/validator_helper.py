@@ -35,6 +35,8 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
     # Design: https://docs.rs/wasmtime/latest/wasmtime/#example-architecture
 
     config = WasiConfig()
+    if not history_str:
+        history_str = '{}'
     config.argv = (policy_hash, request_str, history_str)
     config.preopen_dir(".", "/")
     print("running policy with hash: " + policy_hash)

@@ -1,3 +1,4 @@
+"""Historylib utils for server. Server stores the hash values of objects histories."""
 import functools
 import flask
 import uuid
@@ -6,7 +7,7 @@ from flask import Request, Response
 from .history import History
 from .history_list import HistoryList
 from .batch_history_list import BatchHistoryList
-from Authorization_Server.website.models import HistoryListHash
+from server.website.models import HistoryListHash
 
 # In our server database, each object have a history field.
 # history is a json string with form:
@@ -44,9 +45,6 @@ def validate_history(session):
 def validate_historylist(history_list, object_id, token, request, session):
     """Returns whether a history list in the request header is valid."""
     history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
-    # print("history_list_hash_row.as_dict", history_list_hash_row.as_dict)
-    # print("history_list", history_list)
-    # print("history_list hash", history_list.to_hash())
     if not history_list_hash_row:
         if not history_list.entries:
             return True
@@ -55,8 +53,8 @@ def validate_historylist(history_list, object_id, token, request, session):
     return history_list_hash_row.history_list_hash == history_list.to_hash()
 
 
-# update one single historylist in db
 def insert_historylist(request, object_id, session):
+    """Update one single historylist in db."""
     token = get_token_from_request(request)
     new_history = History(request.path, request.method)
     history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()

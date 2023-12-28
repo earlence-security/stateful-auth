@@ -105,7 +105,7 @@ def list_or_insert_email() -> Response | tuple[Response, UUID | list[UUID]]:
         resp = make_response(jsonify(email.as_dict), 201)
         return resp, email.id
     
-@resource_bp.route('/emails/batch-get', methods=['POST'])
+@resource_bp.route('/emails/batch-get', methods=['GET', 'POST'])
 @require_oauth_stateful()
 @update_history(session=db.session)
 def batch_get_email() -> Response | tuple[Response, UUID | list[UUID]]:
