@@ -133,6 +133,7 @@ def create_client():
     else:
         client.client_secret = gen_salt(48)
 
+    # Set client metadata
     client.set_client_metadata(client_metadata)
 
     db.session.add(client)
@@ -186,6 +187,8 @@ def issue_token():
     # NOTE: `token` is generated in AuthorizationCodeGrant.create_token_response.
     # See https://github.com/lepture/authlib/blob/master/authlib/oauth2/rfc6749/grants/authorization_code.py#L238C30-L238C30.
     # token generates in auth-lib\authlib\oauth2\rfc6749\grants\authorization_code.py
+    print(request.headers)
+    print(request.form)
     return authorization.create_token_response()
 
 

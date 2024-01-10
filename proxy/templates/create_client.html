@@ -8,15 +8,19 @@
 <form action="" method="post" enctype="multipart/form-data">
   <label>
     <span>Client Name</span>
-    <input type="text" name="client_name">
+    <input type="text" name="client_name" required>
   </label>
   <label>
     <span>Client URI</span>
-    <input type="url" name="client_uri">
+    <input type="url" name="client_uri" required>
   </label>
   <label>
     <span>Allowed Scope</span>
-    <input type="text" name="scope">
+    <input type="text" name="scope" required>
+  </label>
+  <label>
+    <span>Upload Policy WASM</span>
+    <input type="file" name="policy_wasm"></input>
   </label>
   <label>
     <span>Policy Program Hashes</span>
@@ -27,20 +31,16 @@
     <input type="url" name="policy_endpoint">
   </label>
   <label>
-    <span>Upload Policy WASM</span>
-    <input type="file" name="policy_wasm"></input>
-  </label>
-  <label>
     <span>Redirect URIs</span>
-    <textarea name="redirect_uri" cols="30" rows="10"></textarea>
+    <textarea name="redirect_uri" cols="30" rows="10" required></textarea>
   </label>
   <label>
     <span>Allowed Grant Types</span>
-    <textarea name="grant_type" cols="30" rows="10"></textarea>
+    <textarea name="grant_type" cols="30" rows="10" required></textarea>
   </label>
   <label>
     <span>Allowed Response Types</span>
-    <textarea name="response_type" cols="30" rows="10"></textarea>
+    <textarea name="response_type" cols="30" rows="10" required></textarea>
   </label>
   <label>
     <span>Token Endpoint Auth Method</span>

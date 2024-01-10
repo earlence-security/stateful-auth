@@ -11,11 +11,12 @@ sys.path.append(parent_dir)
 
 from website.app import create_app
 
-
+cwd = os.getcwd()
 app = create_app({
     'SECRET_KEY': 'secret',
     'OAUTH2_REFRESH_TOKEN_GENERATOR': True,
     'SQLALCHEMY_TRACK_MODIFICATIONS': False,
-    'SQLALCHEMY_DATABASE_URI': 'sqlite:///db.sqlite',
-    'ENABLE_STATEFUL_AUTH': False,
+    'SQLALCHEMY_DATABASE_URI': f'sqlite:////{cwd}/db.sqlite',
+    'ENABLE_STATEFUL_AUTH': True,
+    'UPLOAD_FOLDER': os.path.join(cwd, 'policies'),
 })
