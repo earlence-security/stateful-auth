@@ -16,9 +16,16 @@ class HistoryList:
         # list of History objects
         self.entries: list[History] = []
         if json_str:
-            history_dict_list = json.loads(json_str)
-            for hist in history_dict_list:
-                self.entries.append(History.from_dict(hist))
+            history_list = json.loads(json_str)
+            if isinstance(history_list, list):
+                for hist in history_list:
+                    self.entries.append(History.from_dict(hist))
+            elif isinstance(history_list, dict):
+                assert len(history_list) == 1, "HistoryList json should only have one key"
+                if self.obj_id == "":
+                    self.obj_id = list(history_list.keys())[0]
+                for hist in history_list[self.obj_id]:
+                    self.entries.append(History.from_dict(hist))
 
 
     def __str__(self):
