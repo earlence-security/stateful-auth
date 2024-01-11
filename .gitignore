@@ -5,3 +5,4 @@ venv/*
 Client/rust_policy/**/target/
 Client/rust_policy/**/debug/
 Client/history/*
+examples/gpt/only_read_once_policy/target

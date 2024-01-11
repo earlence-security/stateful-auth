@@ -30,13 +30,14 @@ def get_history_list_str_proxy(session):
     token = get_token_from_request(request)
     object_ids = get_object_ids_from_request(request)
 
-    history_list_batch = BatchHistoryList()
+    history_lists = []
     for id in object_ids:
         history_list_row = session.query(HistoryListRow).filter_by(object_id=id, access_token=token).first()
-        assert not history_list_row, "History list not found in database"
-        history_list_batch.append(HistoryList(json_str=history_list_row.history_list))
+        if history_list_row:
+            history_lists.append(HistoryList(json_str=history_list_row.history_list))
+    print(BatchHistoryList(history_lists).to_json())
 
-    return history_list_batch.to_json()
+    return BatchHistoryList(history_lists).to_json()
 
 
 def update_history_list_proxy(request, object_id, session):

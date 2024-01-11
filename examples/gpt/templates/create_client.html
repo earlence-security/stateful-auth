@@ -1,0 +1,54 @@
+<style>
+  label, label > span { display: block; }
+  label { margin: 15px 0; }
+</style>
+
+<a href="/">Home</a>
+
+<form action="" method="post" enctype="multipart/form-data">
+  <label>
+    <span>Client Name</span>
+    <input type="text" name="client_name" required>
+  </label>
+  <label>
+    <span>Client URI</span>
+    <input type="url" name="client_uri" required>
+  </label>
+  <label>
+    <span>Allowed Scope</span>
+    <input type="text" name="scope" required>
+  </label>
+  <label>
+    <span>Upload Policy WASM</span>
+    <input type="file" name="policy_wasm"></input>
+  </label>
+  <label>
+    <span>Policy Program Hashes</span>
+    <textarea name="policy_hashes" cols="30" rows="10"></textarea>
+  </label>
+  <label>
+    <span>Policy Program Endpoint</span>
+    <input type="url" name="policy_endpoint">
+  </label>
+  <label>
+    <span>Redirect URIs</span>
+    <textarea name="redirect_uri" cols="30" rows="10" required></textarea>
+  </label>
+  <label>
+    <span>Allowed Grant Types</span>
+    <textarea name="grant_type" cols="30" rows="10" required></textarea>
+  </label>
+  <label>
+    <span>Allowed Response Types</span>
+    <textarea name="response_type" cols="30" rows="10" required></textarea>
+  </label>
+  <label>
+    <span>Token Endpoint Auth Method</span>
+    <select name="token_endpoint_auth_method">
+      <option value="client_secret_basic">client_secret_basic</option>
+      <option value="client_secret_post">client_secret_post</option>
+      <option value="none">none</option>
+    </select>
+  </label>
+  <button>Submit</button>
+</form>
