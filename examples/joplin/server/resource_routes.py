@@ -138,16 +138,6 @@ def upload_file():
 def delete_file():
     """Delete a file in the /Apps/Joplin folder."""
     try:
-        # body = request.get_json()
-        # path = body.get('path')
-        # abspath = f"/Apps/JoplinDev{path}"
-        # resp = requests.post(f"{DROPBOX_API_BASE_URL}files/delete_v2", data={'path': abspath})
-        # if resp.status_code != 200:
-        #     raise Exception(f"Delete file failed: {resp.status_code}")
-        # print(f"{resp.headers=}")
-        # print(f"{resp.json()=}")
-        # flask_resp = flask.Response(resp.content, status=resp.status_code, headers=dict(resp.headers))
-        # return flask_resp, [resp.json().get('id')]
         return forward_and_process_response()
     except Exception as e:
         print(e)
@@ -237,23 +227,22 @@ def forward_and_process_response():
     if resp.status_code == 200:
         if resp.headers['Content-Type'] == 'application/json':
             resp_json = json.loads(resp.content)
-            if 'id' in resp_json:
-                ids = [resp_json.get('id')]
+            if 'path_lower' in resp_json:
+                ids = [resp_json.get('path_lower')]
             if 'entries' in resp_json:
                 entries = resp_json.get('entries')
-                ids = [e.get('id') for e in entries]
+                ids = [e.get('path_lower') for e in entries]
             if 'metadata' in resp_json:
                 md = resp_json.get('metadata')
-                ids = [md.get('id')]
+                ids = [md.get('path_lower')]
         if 'Dropbox-Api-Result' in resp.headers:
             resp_headers = dict(resp.headers)
             parsed_api_result = json.loads(resp_headers.get('Dropbox-Api-Result'))
             resp_headers['Dropbox-Api-Result'] = parsed_api_result
-            ids = [parsed_api_result.get('id')]
+            ids = [parsed_api_result.get('path_lower')]
     # Construct the flask response to send back to the client.
     flask_resp = flask.Response(resp.content, status=resp.status_code, headers=resp_headers)
     return flask_resp, ids
-
 
 def init_server_api(app):
     """Initialize the proxy as a client of the real server."""

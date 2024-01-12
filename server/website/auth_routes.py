@@ -16,8 +16,6 @@ from wasmtime import Linker, Module, Store, WasiConfig
 
 auth_bp = Blueprint('auth', __name__)
 
-# TODO move into config
-policy_directory = os.path.join(os.getcwd(), "policies")
 
 @auth_bp.route('/', methods=('GET', 'POST'))
 def home():

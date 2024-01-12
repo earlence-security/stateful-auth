@@ -19,4 +19,5 @@ app = create_app({
     'SQLALCHEMY_DATABASE_URI': f'sqlite:////{cwd}/db.sqlite',
     'ENABLE_STATEFUL_AUTH': True,
     'UPLOAD_FOLDER': os.path.join(cwd, 'policies'),
+    'ENABLE_LOGGING': True,
 })

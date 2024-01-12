@@ -1,5 +1,6 @@
 import os
-from flask import Flask
+from flask import Flask, g
+
 from .models import db
 from .oauth2 import config_oauth
 from .auth_routes import auth_bp
@@ -34,5 +35,6 @@ def setup_app(app):
     with app.app_context():
         db.create_all()
     config_oauth(app)
+
     app.register_blueprint(auth_bp, url_prefix='')
     app.register_blueprint(resource_bp, url_prefix="/api")

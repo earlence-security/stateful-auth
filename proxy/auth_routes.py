@@ -164,6 +164,8 @@ def authorize():
         # TODO handle Null client
         client = OAuth2Client.query.filter_by(client_id=client_id).first()
         print(f"{client=}")
+        if not client:
+            return redirect('/')
         if policy not in client.client_metadata.get("policy_hashes"):
             return UnregisteredPolicyError().error, 403
 

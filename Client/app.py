@@ -82,6 +82,8 @@ def send_policy(policy_hash):
 @app.route('/make_request', methods=['GET', 'POST'])
 def make_request():
     token = session.get('token')
+    if not token:
+        return redirect('/')
     policy = policy_dict[token["policy"]]
     result = ""
     if request.method == 'POST':

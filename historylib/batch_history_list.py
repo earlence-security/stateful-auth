@@ -19,7 +19,7 @@ class BatchHistoryList:
         if historylists != None:
             for historylist in historylists:
                 self.entries[historylist.obj_id] = historylist
-        elif json_str != None:
+        elif json_str:
             bhl_dict = json.loads(json_str)
             for obj_id, historylist_dict in bhl_dict.items():
                 currHistoryList = HistoryList(obj_id, json.dumps(historylist_dict))
@@ -42,6 +42,14 @@ class BatchHistoryList:
         for k, v in self.entries.items():
             entries_dict.update(v.to_dict())
         return json.dumps(entries_dict)
+    
+    def get_num_objects(self):
+        """Number of objects in the batch history list."""
+        return len(self.entries)
+    
+    def get_num_history_entries(self):
+        """Length of history entries in the batch history list."""
+        return sum([len(v.entries) for _, v in self.entries.items()])
 
 
 # sample useage
