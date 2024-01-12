@@ -8,9 +8,9 @@ from werkzeug.security import gen_salt
 from werkzeug.utils import secure_filename
 from authlib.oauth2 import OAuth2Error
 from authlib.oauth2.rfc6750 import UnregisteredPolicyError
-from gpt.models import db, User, OAuth2Client, Policy
-from gpt.oauth2 import authorization
-from gpt.utils import current_user, split_by_crlf
+from .models import db, User, OAuth2Client, Policy
+from .oauth2 import authorization
+from .utils import current_user, split_by_crlf
 from wasmtime import Linker, Module, Store, WasiConfig
 
 

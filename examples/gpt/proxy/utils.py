@@ -1,5 +1,5 @@
 from flask import session
-from gpt.models import User
+from .models import User
 
 def current_user():
     if 'id' in session:
