@@ -2,24 +2,15 @@ import time
 from authlib.oauth2.rfc6750.errors import (
     PolicyFailedError, BadPolicyEndpointError, PolicyHashMismatchError, PolicyCrashedError, InvalidHistoryError
 )
-import os
-import requests
-import hashlib
-import json
+
 import time
-import tempfile
 
-from flask import jsonify
-from wasmtime import Config, Engine, Linker
+from flask import jsonify, g, current_app
 
-from authlib.oauth2 import OAuth2Error
 from authlib.oauth2.stateful.validator_helper import (
     run_policy, build_request_JSON
 )
-import tempfile
 from wasmtime import Config, Engine, Linker, Module
-from historylib.history import History
-from historylib.history_list import HistoryList
 from historylib.batch_history_list import BatchHistoryList
 from historylib.server_utils import validate_history
 
@@ -133,10 +124,15 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
             return q.filter_by(access_token=token_string).first()
         
         # extra stateful checks 
-        def validate_token_stateful(self, token, scopes, request):
+        def validate_token_stateful(self, token, scopes, request,):
 
             q = session.query(client_model)
             client = q.filter_by(client_id=token.client_id).first()
+
+            # LOGGING
+            if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+                and hasattr(g, 'current_log'):
+                history_validation_start = time.time()
 
             if is_proxy:
                 from historylib.proxy_utils import validate_object_ids_proxy
@@ -148,6 +144,11 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 if not validate_history(session):
                     print("!!!!!!!!!!!!!!! invalid history !!!!!!!!!!!!!!!!!!")
                     raise InvalidHistoryError()
+
+            # LOGGING
+            if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+                and hasattr(g, 'current_log'):
+                history_validation_time = time.time() - history_validation_start
 
             # get module from some db
             policy_q = session.query(policy_model)
@@ -163,6 +164,12 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 # Get history list from request header
                 history_list_str = request.headers.get('Authorization-History')
                 # history_list = BatchHistoryList() if not history_list_str else BatchHistoryList(json_str=history_list_str)
+
+            print(f"{request_JSON=}")
+            # LOGGING
+            if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+                and hasattr(g, 'current_log'):
+                policy_execution_start = time.time()
             try:
                 # run the policy, accept/deny based on output
                 # result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list.to_json())
@@ -172,9 +179,30 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
             except Exception as e:
                 print(e)
                 raise PolicyCrashedError()
+            
+            # LOGGING
+            if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+                and hasattr(g, 'current_log'):
+                policy_execution_time = time.time() - policy_execution_start
 
             if not result:
                 raise PolicyFailedError()
-                
+            
+            # LOGGING
+            if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+                and hasattr(g, 'current_log'):
+                history_size = len(history_list_str)
+                batch_history_list = BatchHistoryList(json_str=history_list_str)
+                history_length = batch_history_list.get_num_history_entries()
+                # Save to the current log in LogManager
+                current_log = g.current_log
+                current_log.history_validation_time = history_validation_time
+                current_log.policy_execution_time = policy_execution_time
+                if 'Content-Length' in request.headers:
+                    request_data_size = int(request.headers['Content-Length'])
+                    current_log.request_data_size = request_data_size
+                current_log.history_size = history_size
+                current_log.history_length = history_length
+
 
     return _BearerTokenValidatorStateful

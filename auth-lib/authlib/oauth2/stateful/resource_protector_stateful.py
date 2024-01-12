@@ -6,6 +6,9 @@
 
     .. _`Section 7`: https://tools.ietf.org/html/rfc6749#section-7
 """
+import time
+from flask import current_app, g
+
 from ..rfc6749.util import scope_to_list
 from ..rfc6749 import MissingAuthorizationError, UnsupportedTokenTypeError
 
@@ -142,7 +145,22 @@ class ResourceProtectorStateful(object):
         validator, token_string = self.parse_request_authorization(request)
         validator.validate_request(request)
         token = validator.authenticate_token(token_string)
+
+        # LOGGING
+        if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+            and hasattr(g, 'current_log'):
+            token_validation_start = time.time()
+
         validator.validate_token(token, scopes, request)
+
+        # LOGGING
+        if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+            and hasattr(g, 'current_log'):
+            token_validation_time = time.time() - token_validation_start
+            request_log = g.current_log
+            request_log.policy_hash = token.policy
+            request_log.token_validation_time = token_validation_time
+
         # stateful policy checks
         validator.validate_token_stateful(token, scopes, request)
         return token

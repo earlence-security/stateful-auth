@@ -1,0 +1,1 @@
+Only allow delete if a file is uploaded by the same token.

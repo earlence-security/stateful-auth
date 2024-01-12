@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import flask
 import time
-import json
+import atexit
 from uuid import UUID
 from datetime import datetime
-from flask import Blueprint, Response, jsonify, make_response
+from flask import Blueprint, Response, jsonify, make_response, current_app, request, g
 
 from .oauth2 import require_oauth
 from .oauth2 import require_oauth_stateful
@@ -15,9 +15,44 @@ from authlib.integrations.flask_oauth2 import current_token
 from historylib.history import History
 from historylib.history_list import HistoryList
 from historylib.server_utils import update_history
+from utils.log import RequestLog, LogManager
 
 
 resource_bp = Blueprint("resource", __name__)
+
+# Create a log manager for microbenchmarking, and store it in the app context.
+global_log_manager = LogManager()
+atexit.register(global_log_manager.print_all_logs)
+
+# Register before_request hook for all the routes in this blueprint.
+# This hook will be called before every request to this blueprint.
+@resource_bp.before_request
+def create_request_log():
+    """Create a request log for the current request."""
+    # LOGGING
+    if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING']:
+        g.current_log = RequestLog(
+            request_path=request.path,
+            request_method=request.method,
+        )
+
+
+# Register after_request hook for all the routes in this blueprint.
+# This hook will be called after every request to this blueprint.
+@resource_bp.after_request
+def update_history_list(response: Response) -> Response:
+    """Update the history list of the current object."""
+    # LOGGING
+    if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+        and hasattr(g, 'current_log'):
+        current_log = g.current_log
+        response_data_size = len(response.data)
+        current_log.response_data_size = response_data_size
+        print(f"[LOGGING] {current_log}")
+        # Append to the global log manager.
+        global_log_manager.add_log(current_log)
+    return response
+
 
 # TODO: ResourceProtector.acquire_token. 
 # See https://github.com/lepture/authlib/blob/master/authlib/integrations/flask_oauth2/resource_protector.py

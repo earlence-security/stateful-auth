@@ -2,7 +2,8 @@
 import functools
 import flask
 import uuid
-from flask import Request, Response
+import time
+from flask import Request, Response, g, current_app
 
 from .history import History
 from .history_list import HistoryList
@@ -96,6 +97,12 @@ def update_history(session):
             ids = ret[1] if isinstance(ret[1], list) else [ret[1]]
             request = flask.request
             token = get_token_from_request(request)
+
+            # LOGGING
+            if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+                and hasattr(g, 'current_log'):
+                history_update_start = time.time()
+
             # If create, update, or get an object, we should update the history list hash.
             if (request.method == 'POST' or request.method == 'GET'):
                 history_lists = []
@@ -104,7 +111,6 @@ def update_history(session):
                 new_batch_history_list = BatchHistoryList(historylists=history_lists)
                 # Add updated history list to the response header
                 resp.headers['Set-Authorization-History'] = new_batch_history_list.to_json()
-                return resp
             elif request.method == 'DELETE':
                 for object_id in ids:
                     history_list_hash = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
@@ -112,11 +118,19 @@ def update_history(session):
                         session.delete(history_list_hash)
                         session.commit()
                 resp.headers['Set-Authorization-History'] = ''
-                return resp
             else:
                 # TODO: Add support for other methods, like `list`
                 resp.headers['Set-Authorization-History'] = ''
-                return resp
+            
+
+            # LOGGING
+            if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+                and hasattr(g, 'current_log'):
+                current_log = g.current_log
+                history_update_time = time.time() - history_update_start
+                current_log.history_update_time = history_update_time
+            
+            return resp
             # TODO
             # for now assume single token operations
             # if old_storage != None:
