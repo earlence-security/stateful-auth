@@ -52,7 +52,7 @@ def login():
     
     selected_option = request.form.get('selected_option')
     redirect_uri = url_for('auth', _external=True)
-    return oauth.testClient.authorize_redirect(redirect_uri, 
+    return oauth.testClient.authorize_redirect(app.config['REDIRECT_URI'], 
                                                policy_hash=selected_option)
 
 
