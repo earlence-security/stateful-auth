@@ -84,7 +84,7 @@ def create_client():
     # get program from endpoint and store in db
     for program_hash in client_metadata['policy_hashes']:
         program_name = client_metadata['policy_endpoint'].split("/")[-1]
-        policy_url = os.path.join(client.policy_endpoint, program_hash + ".wasm")
+        policy_url = os.path.join(client_metadata['policy_endpoint'], program_hash + ".wasm")
         policy_file = os.path.join(current_app.config['UPLOAD_FOLDER'], policy_url.split("/")[-1])
         response = requests.get(policy_url)
         if response.status_code == 200:
@@ -116,7 +116,7 @@ def create_client():
     for f in policy_files:
         # Compile the wasm files to Modules
         policy_module = Module.from_file(authorization.wasm_engine, f)
-        policy_hash = filename.split('.')[0]
+        policy_hash = f.split('/')[-1].split('.')[0]
         # serialize and store in db
         existing_policy = db.session.query(Policy).filter_by(policy_hash=policy_hash).first()
         if existing_policy:
@@ -164,6 +164,8 @@ def authorize():
         
         # TODO handle Null client
         client = OAuth2Client.query.filter_by(client_id=client_id).first()
+        if not client:
+            return redirect('/')
         if policy not in client.client_metadata.get("policy_hashes"):
             return UnregisteredPolicyError().error, 403
 
