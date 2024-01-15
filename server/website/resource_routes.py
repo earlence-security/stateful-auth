@@ -163,8 +163,8 @@ def batch_get_email() -> Response | tuple[Response, UUID | list[UUID]]:
         return resp, [e.id for e in ret_emails]
     
 
-@resource_bp.route('/events/<uuid:eventId>', methods=['GET', 'DELETE'])
-@require_oauth('profile')  # TODO: Replace scope w/ other value (eg. "events")
+@resource_bp.route('/events/<uuid:eventId>', methods=['GET', 'DELETE', 'POST'])
+@require_oauth_stateful('profile')  # TODO: Replace scope w/ other value (eg. "events")
 @update_history(session=db.session)
 def get_or_delete_event(eventId: UUID) -> Response | tuple[Response, UUID | list[UUID]]:
     '''Endpoint for get or delete an event.'''
@@ -178,24 +178,45 @@ def get_or_delete_event(eventId: UUID) -> Response | tuple[Response, UUID | list
         # Forbidden
         return make_response('forbidden', 403)
     if flask.request.method == 'GET':
-        return make_response(jsonify(event.as_dict)), event.id
-    else:
+        event_display = event.as_dict
+        event_display['time'] = datetime.fromtimestamp(event_display['time']).isoformat()
+        return make_response(jsonify(event_display)), event.id
+    elif flask.request.method == 'DELETE':
         db.session.delete(event)
         db.session.commit()
         return make_response('deleted', 204), event.id
+    elif flask.request.method == 'POST':
+        # Update an event
+        data = flask.request.get_json()
+        for k, v in data.items():
+            # Convert time to timestamp for storing in the database.
+            if k == 'time':
+                try:
+                    v = datetime.fromisoformat(v).timestamp()
+                except:
+                    # Bad request
+                    return make_response("Invalid time format. Please use ISO format.", 400)
+            setattr(event, k, v)
+        db.session.commit()
+        event_display = event.as_dict
+        event_display['time'] = datetime.fromtimestamp(event_display['time']).isoformat()
+        return make_response(event_display), event.id
+
 
 @resource_bp.route('/events', methods=['GET', 'POST'])
-@require_oauth('profile')  # TODO: Replace scope w/ other value (eg. "events")
+@require_oauth_stateful('profile')  # TODO: Replace scope w/ other value (eg. "events")
 @update_history(session=db.session)
 def list_or_insert_event() -> Response | tuple[Response, UUID | list[UUID]]:
     '''Endpoint for list all the events or insert an new event.'''
     user = current_token.user
     if flask.request.method == 'GET':
         events = Event.query.filter_by(user_id=user.id).all()
-        return make_response(jsonify([(e.as_dict) for e in events])), [e.id for e in events]
+        # NOTE: `list` does not count as an access to an event, so no need to update the history.
+        return make_response(jsonify({'ids': [(e.id) for e in events]})), []
     else:
         data = flask.request.get_json()
-        if 'date' in data:
+        # Convert time to timestamp for storing in the database.
+        if 'time' in data:
             try:
                 t = datetime.fromisoformat(data.get('time')).timestamp()
             except:
@@ -205,7 +226,7 @@ def list_or_insert_event() -> Response | tuple[Response, UUID | list[UUID]]:
             t = time.time()
         event = Event(
             user_id=user.id,
-            name=data.get('name', '(No title)'),
+            title=data.get('title', '(No title)'),
             description=data.get('description', ''),
             time=t,
             location=data.get('location', ''),
@@ -213,4 +234,6 @@ def list_or_insert_event() -> Response | tuple[Response, UUID | list[UUID]]:
         db.session.add(event)
         db.session.commit()
         print(event.as_dict)
-        return make_response(jsonify(event.as_dict), 201), event.id
+        event_display = event.as_dict
+        event_display['time'] = datetime.fromtimestamp(event_display['time']).isoformat()
+        return make_response(jsonify(event_display), 201), event.id

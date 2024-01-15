@@ -184,9 +184,6 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
             if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
                 and hasattr(g, 'current_log'):
                 policy_execution_time = time.time() - policy_execution_start
-
-            if not result:
-                raise PolicyFailedError()
             
             # LOGGING
             if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
@@ -204,5 +201,7 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 current_log.history_size = history_size
                 current_log.history_length = history_length
 
+            if not result:
+                raise PolicyFailedError()
 
     return _BearerTokenValidatorStateful

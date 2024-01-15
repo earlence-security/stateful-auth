@@ -90,7 +90,7 @@ class Event(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
     user = db.relationship('User')
     # Event information
-    name = db.Column(db.String(40), default='(No title)')
+    title = db.Column(db.String(40), default='(No title)')
     description = db.Column(db.String(40), default='')
     time = db.Column(db.Float, default=time.time())
     location = db.Column(db.String(40), default='')

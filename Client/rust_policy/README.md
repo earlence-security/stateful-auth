@@ -19,6 +19,10 @@ After building to wasm, furthur optimize by running:
 
 `  wasm-opt -Os file.wasm -o file.wasm `
 
+Note: install `wasm-opt` binary before running the above command by:
+
+`cargo install wasm-opt --locked`
+
 ### Tips for optimizing for size
 (TODO)
 1. No string formatting

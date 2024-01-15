@@ -47,8 +47,8 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
         config.stdout_file = out_log
         config.stderr_file = err_log
 
-        # LOGGING
-        policy_execution_start = time.time()
+        # # LOGGING
+        # policy_execution_start = time.time()
 
         # Store is a unit of isolation in wasmtime
         # containes wasm objects
@@ -69,8 +69,8 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
             print(e)
             raise
             
-        # LOGGING
-        policy_execution_time = time.time() - policy_execution_start
+        # # LOGGING
+        # policy_execution_time = time.time() - policy_execution_start
 
         with open(out_log) as f:
             result = f.read()
