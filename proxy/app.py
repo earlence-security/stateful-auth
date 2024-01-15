@@ -48,6 +48,10 @@ def setup_app(app):
     config_oauth(app)
     # Register Authorizatin blueprints
     app.register_blueprint(auth_bp, url_prefix='')
+    # Create upload folder if it does not exist already
+    upload_folder = app.config['UPLOAD_FOLDER']
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
     return app
 
 

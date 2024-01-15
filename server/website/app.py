@@ -38,3 +38,8 @@ def setup_app(app):
 
     app.register_blueprint(auth_bp, url_prefix='')
     app.register_blueprint(resource_bp, url_prefix="/api")
+
+    # Create upload folder if it does not exist already
+    upload_folder = app.config['UPLOAD_FOLDER']
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
