@@ -1,0 +1,1 @@
+Stateless policy that checks whether the title of an event starts with "Meeting" and time is later than Feb 15, 2024 when users trying to create an event.

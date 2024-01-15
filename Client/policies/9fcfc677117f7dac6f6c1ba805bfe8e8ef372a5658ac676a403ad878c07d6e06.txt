@@ -1,0 +1,1 @@
+Stateless policy that checks whether the title of an event starts with "Meeting" when users trying to create an event.

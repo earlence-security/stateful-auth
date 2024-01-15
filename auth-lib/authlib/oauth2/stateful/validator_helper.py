@@ -1,5 +1,6 @@
 import time
 import json
+from urllib.parse import urlparse
 
 from wasmtime import Linker, Module, Store, WasiConfig
 import os
@@ -11,6 +12,7 @@ def build_request_JSON(request):
     request_data = {}
     request_data['method'] = request.method
     request_data['uri'] = request.uri
+    request_data['path'] = urlparse(request.uri).path
     
     # check if request contain JSON body
     request_body = None

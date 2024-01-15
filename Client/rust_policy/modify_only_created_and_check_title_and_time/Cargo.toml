@@ -1,0 +1,16 @@
+[package]
+name = "modify_only_created_and_check_title_and_time"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = "0.4"
+
+[profile.release]
+strip = "debuginfo"
+lto = true
+opt-level = 's'
