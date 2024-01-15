@@ -27,9 +27,9 @@ oauth.register(
     name='testClient',
     client_id=app.config['CLIENT_ID'],
     client_secret=app.config['CLIENT_SECRET'],
-    access_token_url='http://127.0.0.1:5000/oauth/token',
+    access_token_url=app.config['ACCESS_TOKEN_URL'],
     access_token_params=None,
-    authorize_url='http://127.0.0.1:5000/oauth/authorize',
+    authorize_url=app.config['AUTHORIZE_URL'],
     authorize_params=None,
     client_kwargs=app.config['CLIENT_KWARGS']
 )
