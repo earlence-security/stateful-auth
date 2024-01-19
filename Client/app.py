@@ -5,6 +5,7 @@ from flask import render_template, redirect
 from utils import build_policy_decription_dict 
 import requests
 import json
+import time
 
 # add the auth-lib in our directory as path
 parent_dir = os.path.abspath(os.path.dirname(__file__))
@@ -106,9 +107,14 @@ def make_request():
             obj_history = get_batchhistory(objs_to_be_accessed, history_path, token["access_token"])
             headers['Authorization-History'] = obj_history.to_json()
         
+        send_time = 0
+        recv_time = 0
+
         try:
             if selected_method == 'GET':
+                send_time = time.time()
                 response = requests.get(target_api, headers=headers)
+                recv_time = time.time()
 
             if selected_method == 'POST':
                 headers['Content-Type'] = 'application/json'
@@ -118,10 +124,15 @@ def make_request():
                 if obj_ids:
                     obj_history = get_batchhistory(obj_ids, history_path, token["access_token"])
                     headers['Authorization-History'] = obj_history.to_json()
+                send_time = time.time()
                 response = requests.post(target_api, headers=headers, data=request_body) 
+                recv_time = time.time()
 
             if selected_method == 'DELETE':
+                send_time = time.time()
                 response = requests.delete(target_api, headers=headers)
+                recv_time = time.time()
+
                 if response.status_code == 204:
                     delete_history_file(input_api_append, history_path)
 
@@ -138,6 +149,10 @@ def make_request():
                 print(response.headers.get('Set-Authorization-History'))
                 resp_hist_list = BatchHistoryList(json_str=response.headers.get('Set-Authorization-History'))
                 batch_history_to_file(resp_hist_list, history_path, token["access_token"])
+
+            # Record e2e latecy
+            if send_time != 0 and recv_time != 0:
+                result += f"\n\nE2E Latency: {(recv_time - send_time) * 1000} milliseconds"
 
         except Exception as e:
             result = {'error': str(e)}

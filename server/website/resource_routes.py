@@ -22,7 +22,10 @@ resource_bp = Blueprint("resource", __name__)
 
 # Create a log manager for microbenchmarking, and store it in the app context.
 global_log_manager = LogManager()
-atexit.register(global_log_manager.print_all_logs)
+def save_logs():
+    global_log_manager.print_all_logs()
+    global_log_manager.to_file()
+atexit.register(save_logs)
 
 # Register before_request hook for all the routes in this blueprint.
 # This hook will be called before every request to this blueprint.

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import json
 
 
 @dataclass 
@@ -25,6 +26,12 @@ class RequestLog:
 
     def __repr__(self):
         return self.__str__()
+    
+    def to_dict(self):
+        return self.__dict__
+    
+    def to_json(self):
+        return json.dumps(self.__dict__)
 
 class LogManager:
     """A manager class for storing request logs.
@@ -55,6 +62,6 @@ class LogManager:
     
     def to_file(self):
         """Write the logs to a file."""
+        log_list = [log.to_dict() for log in self.logs]
         with open("logs.txt", "w") as f:
-            for log in self.logs:
-                f.write(str(log) + "\n")
+            f.write(json.dumps(log_list, indent=2))
