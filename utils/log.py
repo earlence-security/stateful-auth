@@ -10,6 +10,7 @@ class RequestLog:
     request_method: str
     policy_hash: str = ""
     # Request parameters
+    request_size: int = 0
     request_data_size: int = 0
     history_length: int = 0
     history_size: int = 0

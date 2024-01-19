@@ -155,7 +155,7 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
             policy = policy_q.filter_by(policy_hash=token.policy).first()
             policy_module = Module.deserialize(wasm_linker.engine, policy.serialized_module)
 
-            request_JSON = build_request_JSON(request)
+            request_JSON, request_size = build_request_JSON(request)
             if is_proxy:
                 # Get history list from server-side DB (only for proxy)
                 from historylib.proxy_utils import get_history_list_str_proxy
@@ -165,7 +165,7 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 history_list_str = request.headers.get('Authorization-History')
                 # history_list = BatchHistoryList() if not history_list_str else BatchHistoryList(json_str=history_list_str)
 
-            print(f"{request_JSON=}")
+            # print(f"{request_JSON=}")
             # LOGGING
             if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
                 and hasattr(g, 'current_log'):
@@ -173,8 +173,8 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
             try:
                 # run the policy, accept/deny based on output
                 # result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list.to_json())
-                print("request input to policy program is: ", request_JSON)
-                print("history input to policy program is: ", history_list_str)
+                # print("request input to policy program is: ", request_JSON)
+                # print("history input to policy program is: ", history_list_str)
                 result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list_str)
             except Exception as e:
                 print(e)
@@ -184,7 +184,7 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
             if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
                 and hasattr(g, 'current_log'):
                 policy_execution_time = time.time() - policy_execution_start
-            
+
             # LOGGING
             if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
                 and hasattr(g, 'current_log'):
@@ -195,6 +195,7 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 current_log = g.current_log
                 current_log.history_validation_time = history_validation_time
                 current_log.policy_execution_time = policy_execution_time
+                current_log.request_size = request_size
                 if 'Content-Length' in request.headers:
                     request_data_size = int(request.headers['Content-Length'])
                     current_log.request_data_size = request_data_size

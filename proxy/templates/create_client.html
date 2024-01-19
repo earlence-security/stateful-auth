@@ -8,7 +8,7 @@
 <form action="" method="post" enctype="multipart/form-data">
   <label>
     <span>Client Name</span>
-    <input type="text" name="client_name" required>
+    <input type="text" name="client_name" value="client_00" required>
   </label>
   <label>
     <span>Client URI</span>
@@ -16,7 +16,7 @@
   </label>
   <label>
     <span>Allowed Scope</span>
-    <input type="text" name="scope" required>
+    <input type="text" name="scope" value="profile" required>
   </label>
   <label>
     <span>Upload Policy WASM</span>
@@ -32,15 +32,15 @@
   </label>
   <label>
     <span>Redirect URIs</span>
-    <textarea name="redirect_uri" cols="30" rows="10" required></textarea>
+    <input type="text" name="redirect_uri" required></textarea>
   </label>
   <label>
     <span>Allowed Grant Types</span>
-    <textarea name="grant_type" cols="30" rows="10" required></textarea>
+    <input type="text" name="grant_type" value="authorization_code" required></textarea>
   </label>
   <label>
     <span>Allowed Response Types</span>
-    <textarea name="response_type" cols="30" rows="10" required></textarea>
+    <input type="text" name="response_type" value="code" required></textarea>
   </label>
   <label>
     <span>Token Endpoint Auth Method</span>

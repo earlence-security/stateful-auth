@@ -31,7 +31,16 @@ def build_request_JSON(request):
     request_data['time'] = time.time()
 
     json_data = json.dumps(request_data)
-    return json_data
+
+    # Compute the entire message size of the request
+    len_of_meth = len(request.method)
+    len_of_addr = len(request.uri)
+    len_of_head = len('\r\n'.join('{}{}'.format(k, v) for k, v in request.headers.items()))
+    len_of_body = len(request_data['body']) if request_body else 0
+
+    total_len = len_of_meth + len_of_addr + len_of_head + len_of_body
+
+    return json_data, total_len
 
 def run_policy(linker, policy_module, policy_hash, request_str, history_str):
     # Design: https://docs.rs/wasmtime/latest/wasmtime/#example-architecture
