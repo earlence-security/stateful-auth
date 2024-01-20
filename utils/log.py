@@ -1,5 +1,7 @@
-from dataclasses import dataclass
+import os
 import json
+from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass 
@@ -63,6 +65,9 @@ class LogManager:
     
     def to_file(self):
         """Write the logs to a file."""
+        if not os.path.exists("logs"):
+            os.makedirs("logs")
         log_list = [log.to_dict() for log in self.logs]
-        with open("logs.txt", "w") as f:
+        suffix = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        with open(f"logs/logs_{suffix}.txt", "w") as f:
             f.write(json.dumps(log_list, indent=2))
