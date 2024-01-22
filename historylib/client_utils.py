@@ -67,4 +67,5 @@ def get_batchhistory(filename_list: list, directory, token):
 
 def delete_history_file(filename, directory):
     file_path = os.path.join(directory, filename)
-    os.remove(file_path)
+    if os.path.exists(file_path):
+        os.remove(file_path)

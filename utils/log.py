@@ -11,6 +11,7 @@ class RequestLog:
     request_path: str
     request_method: str
     policy_hash: str = ""
+    policy_succeeds: bool = False
     # Request parameters
     request_size: int = 0
     request_data_size: int = 0

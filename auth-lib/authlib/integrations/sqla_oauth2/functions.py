@@ -193,6 +193,7 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 history_length = batch_history_list.get_num_history_entries()
                 # Save to the current log in LogManager
                 current_log = g.current_log
+                current_log.policy_succeeds = result
                 current_log.history_validation_time = history_validation_time
                 current_log.policy_execution_time = policy_execution_time
                 current_log.request_size = request_size
