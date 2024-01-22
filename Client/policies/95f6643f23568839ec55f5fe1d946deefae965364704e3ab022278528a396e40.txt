@@ -1,0 +1,1 @@
+Stateful policy that enforces that the token bearer can only access the events it created.
