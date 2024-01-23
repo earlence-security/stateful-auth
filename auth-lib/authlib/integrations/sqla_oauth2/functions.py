@@ -188,11 +188,14 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
             # LOGGING
             if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
                 and hasattr(g, 'current_log'):
-                history_size = len(history_list_str)
-                batch_history_list = BatchHistoryList(json_str=history_list_str)
-                history_length = batch_history_list.get_num_history_entries()
                 # Save to the current log in LogManager
                 current_log = g.current_log
+                if history_list_str:
+                    history_size = len(history_list_str)
+                    batch_history_list = BatchHistoryList(json_str=history_list_str)
+                    history_length = batch_history_list.get_num_history_entries()
+                    current_log.history_size = history_size
+                    current_log.history_length = history_length
                 current_log.policy_succeeds = result
                 current_log.history_validation_time = history_validation_time
                 current_log.policy_execution_time = policy_execution_time
@@ -200,8 +203,7 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 if 'Content-Length' in request.headers:
                     request_data_size = int(request.headers['Content-Length'])
                     current_log.request_data_size = request_data_size
-                current_log.history_size = history_size
-                current_log.history_length = history_length
+
 
             if not result:
                 raise PolicyFailedError()

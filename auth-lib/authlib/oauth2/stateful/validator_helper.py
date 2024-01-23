@@ -50,7 +50,7 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
         history_str = '{}'
     config.argv = (policy_hash, request_str, history_str)
     config.preopen_dir(".", "/")
-    print("running policy with hash: " + policy_hash)
+    # print("running policy with hash: " + policy_hash)
     with tempfile.TemporaryDirectory() as chroot:
 
         out_log = os.path.join(chroot, "out.log")
@@ -85,7 +85,7 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
 
         with open(out_log) as f:
             result = f.read()
-            print("Policy returned: " + result)
+            # print("Policy returned: " + result)
             if "Deny" in result:
                 return False
             elif "Accept" in result:
