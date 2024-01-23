@@ -248,7 +248,7 @@ def batch_get_email() -> Response | tuple[Response, UUID | list[UUID]]:
 @require_oauth('profile')
 # @update_history(session=db.session)
 def get_or_delete_event(eventId: UUID) -> Response | tuple[Response, UUID | list[UUID]]:
-    return make_response(jsonify("success")), eventId 
+    return make_response(jsonify("success"))
 
 @resource_bp.route('/events/import', methods=['POST'])
 @require_oauth('profile')
