@@ -4,12 +4,14 @@ from flask import Flask, g
 from .models import db
 from .oauth2 import config_oauth
 from .auth_routes import auth_bp
-from .resource_routes import resource_bp
+# HACK: import resource_bp from resource_routes_test.py for latency and tput measurement
+from .resource_routes_test import resource_bp
+# from .resource_routes import resource_bp
 
 
 def create_app(config=None):
     app = Flask(__name__)
-
+    app.logger.setLevel('DEBUG')
     # load default configuration
     app.config.from_object('website.settings')
 

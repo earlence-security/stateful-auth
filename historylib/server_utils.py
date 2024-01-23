@@ -40,7 +40,9 @@ def validate_history(session):
                 return False
         return True
     else:
-        return request.headers.get('Authorization-History') == ''
+        # HACK: for latency measurement, we assume the initial history list is valid.
+        return True
+        # return request.headers.get('Authorization-History') == ''
     
 
 def validate_historylist(history_list, object_id, token, request, session):
@@ -65,12 +67,15 @@ def insert_historylist(request, object_id, session):
         # Existing object, update history list hash
         old_batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
         history_list = old_batch_history_list.entries[str(object_id)]
-        history_list.append(new_history)
+        # HACK: for measurement, it won't update the history list. So the history is always valid.
+        # history_list.append(new_history)    # TODO: Recover this.
         history_list_hash_row.history_list_hash = history_list.to_hash()
         session.commit()
     else:
         # New object, create history list hash
-        history_list.append(new_history)
+        # HACK: for latency measurement, we assume the initial history list comes from the client.
+        history_list = HistoryList(json_str=request.headers.get('Authorization-History'))    # TODO: Remove this.
+        # history_list.append(new_history)    # TODO: Recover this.
         history_list_hash = HistoryListHash(
             object_id=object_id,
             access_token=token,
@@ -97,7 +102,6 @@ def update_history(session):
             ids = ret[1] if isinstance(ret[1], list) else [ret[1]]
             request = flask.request
             token = get_token_from_request(request)
-
             # LOGGING
             if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
                 and hasattr(g, 'current_log'):
