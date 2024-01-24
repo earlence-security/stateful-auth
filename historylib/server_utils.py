@@ -3,6 +3,7 @@ import functools
 import flask
 import uuid
 import time
+import json
 from flask import Request, Response, g, current_app
 
 from .history import History
@@ -23,6 +24,7 @@ from server.website.models import HistoryListHash
 def validate_history(session):
     """Returns whether a batch of history list in the request header is valid."""
     request = flask.request
+    # data = request.get_json(silent=True)
     data = request.get_json(silent=True)
     token = get_token_from_request(request)
 
@@ -47,12 +49,15 @@ def validate_history(session):
 
 def validate_historylist(history_list, object_id, token, request, session):
     """Returns whether a history list in the request header is valid."""
+    # print("validate_historylist", object_id)
     history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
     if not history_list_hash_row:
-        if not history_list.entries:
-            return True
-        else:
-            return False
+        # TODO: Recover this.
+        # if not history_list.entries:
+        #     return True
+        # else:
+        #     return False
+        return True
     return history_list_hash_row.history_list_hash == history_list.to_hash()
 
 
@@ -74,6 +79,7 @@ def insert_historylist(request, object_id, session):
     else:
         # New object, create history list hash
         # HACK: for latency measurement, we assume the initial history list comes from the client.
+        # print("insert_historylist", object_id)
         batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))    # TODO: Remove this.
         history_list = batch_history_list.entries[str(object_id)]    # TODO: Remove this.
         # history_list.append(new_history)    # TODO: Recover this.

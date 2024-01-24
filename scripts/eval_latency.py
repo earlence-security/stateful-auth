@@ -131,6 +131,7 @@ def measure_latency(base_url, token, reqs):
         headers = {
             'Authorization': f'Bearer {token}',
             'Authorization-History': json.dumps(batch_history),
+            'Content-Type': 'application/json',
         }
         start_time = time.time()
         # print(f'{method} {path} {data} {headers}')
