@@ -74,7 +74,8 @@ def insert_historylist(request, object_id, session):
     else:
         # New object, create history list hash
         # HACK: for latency measurement, we assume the initial history list comes from the client.
-        history_list = HistoryList(json_str=request.headers.get('Authorization-History'))    # TODO: Remove this.
+        batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))    # TODO: Remove this.
+        history_list = batch_history_list.entries[str(object_id)]    # TODO: Remove this.
         # history_list.append(new_history)    # TODO: Recover this.
         history_list_hash = HistoryListHash(
             object_id=object_id,

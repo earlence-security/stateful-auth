@@ -254,15 +254,15 @@ def get_or_delete_event(eventId: UUID) -> Response | tuple[Response, UUID | list
 @require_oauth_stateful('profile')
 @update_history(session=db.session)
 def import_events() -> Response | tuple[Response, UUID | list[UUID]]:
-    eventId = UUID(json.loads(flask.request.data).get('eventId'))
-    return make_response(jsonify("success")), eventId 
+    ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
+    return make_response(jsonify("success")), ids 
 
 @resource_bp.route('/events', methods=['POST', 'GET'])
 @require_oauth_stateful('profile')
 @update_history(session=db.session)
 def create_events() -> Response | tuple[Response, UUID | list[UUID]]:
-    eventId = UUID(json.loads(flask.request.data).get('eventId'))
-    return make_response(jsonify("success")), eventId 
+    ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
+    return make_response(jsonify("success")), ids 
 
 @resource_bp.route('/events/<uuid:eventId>/instances', methods=['GET'])
 @require_oauth_stateful('profile')
@@ -280,12 +280,12 @@ def move_event(eventId:UUID) -> Response | tuple[Response, UUID | list[UUID]]:
 @require_oauth_stateful('profile')
 @update_history(session=db.session)
 def quick_add_event() -> Response | tuple[Response, UUID | list[UUID]]:
-    eventId = UUID(json.loads(flask.request.data).get('eventId'))
-    return make_response(jsonify("success")), eventId 
+    ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
+    return make_response(jsonify("success")), ids 
 
 @resource_bp.route('/events/watch', methods=['POST'])
 @require_oauth_stateful('profile')
 @update_history(session=db.session)
 def watch() -> Response | tuple[Response, UUID | list[UUID]]:
-    eventId = UUID(json.loads(flask.request.data).get('eventId'))
-    return make_response(jsonify("success")), eventId 
+    ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
+    return make_response(jsonify("success")), ids
