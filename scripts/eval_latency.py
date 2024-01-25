@@ -138,8 +138,8 @@ def measure_latency(base_url, token, reqs):
         }
         start_time = time.time()
         # print(f'{method} {path} {data} {headers}')
-        print(f"Data size: {len(data)}")
-        print(f"Header size: {len(headers['Authorization-History'])}")
+        # print(f"Data size: {len(data)}")
+        # print(f"Header size: {len(headers['Authorization-History'])}")
         r = requests.request(method, f'{base_url}{path}', data=data, headers=headers)
         end_time = time.time()
         # Convert to ms
