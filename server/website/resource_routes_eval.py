@@ -39,6 +39,7 @@ def create_request_log():
             request_path=request.path,
             request_method=request.method,
         )
+        g.current_log.request_total_time = time.time()
 
 
 # Register after_request hook for all the routes in this blueprint.
@@ -52,7 +53,8 @@ def update_history_list(response: Response) -> Response:
         current_log = g.current_log
         response_data_size = len(response.data)
         current_log.response_data_size = response_data_size
-        print(f"[LOGGING] {current_log}")
+        current_log.request_total_time = time.time() - current_log.request_total_time
+        # print(f"[LOGGING] {current_log}")
         # Append to the global log manager.
         global_log_manager.add_log(current_log)
     return response

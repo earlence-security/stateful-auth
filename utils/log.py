@@ -20,6 +20,7 @@ class RequestLog:
     # Response parameters
     response_data_size: int = 0
     # Latency info
+    request_total_time: float = 0.0
     token_validation_time: float = 0.0
     history_validation_time: float = 0.0
     policy_execution_time: float = 0.0

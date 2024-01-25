@@ -136,9 +136,9 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
 
             if is_proxy:
                 from historylib.proxy_utils import validate_object_ids_proxy
-                #if not validate_object_ids_proxy(session):
-                    #print("!!!!!!!!!!!!!!! invalid object_id !!!!!!!!!!!!!!!!!!")
-                    # raise InvalidHistoryError()
+                if not validate_object_ids_proxy(session):
+                    # print("!!!!!!!!!!!!!!! invalid object_id !!!!!!!!!!!!!!!!!!")
+                    raise InvalidHistoryError()
             else:
                 # Check for history integrity
                 if not validate_history(session):
@@ -149,6 +149,11 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
             if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
                 and hasattr(g, 'current_log'):
                 history_validation_time = time.time() - history_validation_start
+
+            # LOGGING
+            if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+                and hasattr(g, 'current_log'):
+                policy_execution_start = time.time()
 
             # get module from some db
             policy_q = session.query(policy_model)
@@ -166,10 +171,6 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 # history_list = BatchHistoryList() if not history_list_str else BatchHistoryList(json_str=history_list_str)
 
             # print(f"{request_JSON=}")
-            # LOGGING
-            if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
-                and hasattr(g, 'current_log'):
-                policy_execution_start = time.time()
             try:
                 # run the policy, accept/deny based on output
                 # result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list.to_json())
