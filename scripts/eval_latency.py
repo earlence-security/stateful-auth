@@ -79,7 +79,7 @@ fake_history_entries = [
 apis = [(e["api"], e["method"])  for e in fake_history_entries]
 apis_ids = [(e["api"], e["method"]) for e in fake_history_entries if "<event_id>" not in e["api"]]
 
-def generate_requests(max_objects, num_objects_step, n_iters, deny_ratio=0.2, model='stateful'):
+def generate_requests(n_iters, deny_ratio=0.2, model='stateful'):
     reqs = []
     # Option 1: mix the endpoints
     for i in [1, 10, 20, 30, 40, 50]:
@@ -159,7 +159,7 @@ def main():
     parser.add_argument('--model', type=str, default='stateful')
     args = parser.parse_args()
     
-    reqs = generate_requests(args.max_objects, args.step, args.n_iters, args.deny_ratio, args.model)
+    reqs = generate_requests(args.n_iters, args.deny_ratio, args.model)
     with open('reqs.json', 'w') as f:
         json.dump(reqs, f, indent=4)
 
