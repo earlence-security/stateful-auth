@@ -79,10 +79,10 @@ fake_history_entries = [
 apis = [(e["api"], e["method"])  for e in fake_history_entries]
 apis_ids = [(e["api"], e["method"]) for e in fake_history_entries if "<event_id>" not in e["api"]]
 
-def generate_requests(max_objects, num_objects_step, n_iters, deny_ratio=0.2):
+def generate_requests(max_objects, num_objects_step, n_iters, deny_ratio=0.2, model='stateful'):
     reqs = []
     # Option 1: mix the endpoints
-    for i in range(5, max_objects+1, num_objects_step):
+    for i in [1, 10, 20, 30, 40, 50]:
         for _ in range(n_iters):
             path, method = random.choice(apis_ids)
             ids = [str(uuid4()) for _ in range(i)]
@@ -90,13 +90,16 @@ def generate_requests(max_objects, num_objects_step, n_iters, deny_ratio=0.2):
             data = {'ids': ids}
             # path.replace('<event_id>', id.hex)
             # Replace "<event_id>" with real ids in history.
-            batch_history = {}
-            for id in ids:
-                history = deepcopy(fake_history_entries)
-                for e in history:
-                    e["api"] = e["api"].replace('<event_id>', id)
-                batch_history[id] = history
-            reqs.append((i, path, method, json.dumps(data), batch_history))
+            if model == 'stateful':
+                batch_history = {}
+                for id in ids:
+                    history = deepcopy(fake_history_entries)
+                    for e in history:
+                        e["api"] = e["api"].replace('<event_id>', id)
+                    batch_history[id] = history
+                reqs.append((i, path, method, json.dumps(data), batch_history))
+            else:
+                reqs.append((i, path, method, json.dumps(data), None))
 
     # Option 2: measure the latency of every single endpoint
     # ids = []
@@ -135,6 +138,8 @@ def measure_latency(base_url, token, reqs):
         }
         start_time = time.time()
         # print(f'{method} {path} {data} {headers}')
+        print(f"Data size: {len(data)}")
+        print(f"Header size: {len(headers['Authorization-History'])}")
         r = requests.request(method, f'{base_url}{path}', data=data, headers=headers)
         end_time = time.time()
         # Convert to ms
@@ -148,12 +153,13 @@ def main():
     parser.add_argument('--base-url', type=str, default='http://127.0.0.1:5000/api')
     # parser.add_argument('--num-requests', type=int, default=300)
     parser.add_argument('--n-iters', type=int, default=30)
-    parser.add_argument('--max-objects', type=int, default=10)
-    parser.add_argument('--step', type=int, default=1)
+    # parser.add_argument('--max-objects', type=int, default=10)
+    # parser.add_argument('--step', type=int, default=1)
     parser.add_argument('--deny-ratio', type=float, default='0.2')
+    parser.add_argument('--model', type=str, default='stateful')
     args = parser.parse_args()
     
-    reqs = generate_requests(args.max_objects, args.step, args.n_iters, args.deny_ratio)
+    reqs = generate_requests(args.max_objects, args.step, args.n_iters, args.deny_ratio, args.model)
     with open('reqs.json', 'w') as f:
         json.dump(reqs, f, indent=4)
 
@@ -162,7 +168,7 @@ def main():
 
     latency = measure_latency(args.base_url, args.token, reqs)
 
-    with open('latency.csv', 'w') as f:
+    with open(f'latency_{args.model}.csv', 'w') as f:
         f.write('num_objects, method,path,latency\n')
         for (i, path, method, _, _), l in zip(reqs, latency):
             f.write(f'{i},{method},{path},{l}\n')
