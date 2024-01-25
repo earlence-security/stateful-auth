@@ -65,10 +65,14 @@ def insert_historylist(request, object_id, session):
     """Update one single historylist in db."""
     token = get_token_from_request(request)
     new_history = History(request.path, request.method)
+    t = time.time()
     history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
+    t = time.time() - t
+    print("query_historylist", object_id, t)
 
     history_list = HistoryList(obj_id=object_id)
     if history_list_hash_row:
+        t = time.time()
         # Existing object, update history list hash
         old_batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
         history_list = old_batch_history_list.entries[str(object_id)]
@@ -76,10 +80,13 @@ def insert_historylist(request, object_id, session):
         # history_list.append(new_history)    # TODO: Recover this.
         history_list_hash_row.history_list_hash = history_list.to_hash()
         session.commit()
+        t = time.time() - t
+        print("update_historylist", object_id, t)
     else:
         # New object, create history list hash
         # HACK: for latency measurement, we assume the initial history list comes from the client.
         # print("insert_historylist", object_id)
+        t = time.time()
         batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))    # TODO: Remove this.
         history_list = batch_history_list.entries[str(object_id)]    # TODO: Remove this.
         # history_list.append(new_history)    # TODO: Recover this.
@@ -90,6 +97,8 @@ def insert_historylist(request, object_id, session):
         )
         session.add(history_list_hash)
         session.commit()
+        t = time.time() - t
+        print("insert_historylist", object_id, t)
     return history_list
 
 
