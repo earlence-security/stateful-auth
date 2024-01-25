@@ -52,7 +52,7 @@ def update_history_list(response: Response) -> Response:
         current_log = g.current_log
         response_data_size = len(response.data)
         current_log.response_data_size = response_data_size
-        print(f"[LOGGING] {current_log}")
+        # print(f"[LOGGING] {current_log}")
         # Append to the global log manager.
         global_log_manager.add_log(current_log)
     return response
