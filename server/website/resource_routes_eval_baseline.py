@@ -248,44 +248,97 @@ def batch_get_email() -> Response | tuple[Response, UUID | list[UUID]]:
 @require_oauth('profile')
 # @update_history(session=db.session)
 def get_or_delete_event(eventId: UUID) -> Response | tuple[Response, UUID | list[UUID]]:
-    return make_response(jsonify("success"))
+    user = current_token.user
+    event = Event(
+        id=UUID(eventId),
+        user_id=user.id,
+    )
+    db.session.add(event)
+    db.session.commit()
+    return make_response(jsonify(event.as_dict))
 
 @resource_bp.route('/events/import', methods=['POST'])
 @require_oauth('profile')
 # @update_history(session=db.session)
 def import_events() -> Response | tuple[Response, UUID | list[UUID]]:
     ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
-    return make_response(jsonify("success"))
+    user = current_token.user
+    for id in ids:
+        event = Event(
+            id=id,
+            user_id=user.id,
+        )
+        db.session.add(event)
+    db.session.commit()
+    return make_response(jsonify({'ids': ids}))
 
 @resource_bp.route('/events', methods=['POST', 'GET'])
 @require_oauth('profile')
 # @update_history(session=db.session)
 def create_events() -> Response | tuple[Response, UUID | list[UUID]]:
     ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
-    return make_response(jsonify("success"))
+    user = current_token.user
+    for id in ids:
+        event = Event(
+            id=id,
+            user_id=user.id,
+        )
+        db.session.add(event)
+    db.session.commit()
+    return make_response(jsonify({'ids': ids}))
 
 @resource_bp.route('/events/<uuid:eventId>/instances', methods=['GET'])
 @require_oauth('profile')
 # @update_history(session=db.session)
 def list_event_instances(eventId:UUID) -> Response | tuple[Response, UUID | list[UUID]]:
-    return make_response(jsonify("success"))
+    user = current_token.user
+    event = Event(
+        id=UUID(eventId),
+        user_id=user.id,
+    )
+    db.session.add(event)
+    db.session.commit()
+    return make_response(jsonify(event.as_dict))
 
 @resource_bp.route('/events/<uuid:eventId>/move', methods=['POST'])
 @require_oauth('profile')
 # @update_history(session=db.session)
 def move_event(eventId:UUID) -> Response | tuple[Response, UUID | list[UUID]]:
-    return make_response(jsonify("success"))
+    user = current_token.user
+    event = Event(
+        id=UUID(eventId),
+        user_id=user.id,
+    )
+    db.session.add(event)
+    db.session.commit()
+    return make_response(jsonify(event.as_dict))
 
 @resource_bp.route('/events/quickAdd', methods=['POST'])
 @require_oauth('profile')
 # @update_history(session=db.session)
 def quick_add_event() -> Response | tuple[Response, UUID | list[UUID]]:
     ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
-    return make_response(jsonify("success"))
+    user = current_token.user
+    for id in ids:
+        event = Event(
+            id=id,
+            user_id=user.id,
+        )
+        db.session.add(event)
+    db.session.commit()
+    return make_response(jsonify({'ids': ids}))
 
 @resource_bp.route('/events/watch', methods=['POST'])
 @require_oauth('profile')
 # @update_history(session=db.session)
 def watch() -> Response | tuple[Response, UUID | list[UUID]]:
     ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
-    return make_response(jsonify("success"))
+    user = current_token.user
+    for id in ids:
+        event = Event(
+            id=id,
+            user_id=user.id,
+        )
+        db.session.add(event)
+    db.session.commit()
+    return make_response(jsonify({'ids': ids}))
