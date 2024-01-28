@@ -158,7 +158,7 @@ def main():
     parser.add_argument('--token', type=str, default='token')
     parser.add_argument('--base-url', type=str, default='http://127.0.0.1:5000/api')
     parser.add_argument('--model', type=str, default='stateful')
-    parser.add_argument('--generate-reqs', action='store_true')
+    # parser.add_argument('--generate-reqs', action='store_true')
     parser.add_argument('--n-iters', type=int, default=30)
     parser.add_argument('--n-objects', type=int, default=1)
     parser.add_argument('--delay', type=float, default=0.05, help="Delay between requests in ms")
