@@ -10,12 +10,9 @@ import asyncio
 from uuid import uuid4
 from itertools import accumulate
 from copy import deepcopy
-
+from datetime import datetime
 import logging
 
-# Enable debug logging for httpx
-httpx_logger = logging.getLogger("httpx")
-httpx_logger.setLevel(logging.DEBUG)
 
 # Google Calendar events have 11 API endpoints. 10 if excluding the delete API.
 api_lst = ['get', 'list', 'insert', 'update', 'patch', 'move', 'import', 'watch', 'stop', 'quickAdd']
@@ -132,7 +129,6 @@ async def send_request(client, base_url, token, path, method, data, batch_histor
     }
     if start_time == 0:
         # Start the timer when sending the first request.
-        print(f'Starting timer...')
         start_time = time.time()
         current_time = start_time
     num_sent_reqs += 1
@@ -166,24 +162,26 @@ def main():
     parser.add_argument('--n-objects', type=int, default=1)
     parser.add_argument('--delay', type=float, default=0.05, help="Delay between requests in ms")
     parser.add_argument('--time-limit', type=int, default=300)
+    parser.add_argument('--n-threads', type=int, default=1)
+    parser.add_argument('--thread', type=int, default=0)
 
     args = parser.parse_args()
     if args.generate_reqs:
         reqs = generate_requests(args.n_iters, args.model, args.n_objects)
-        with open(f'reqs_{args.n_objects}.json', 'w') as f:
+        with open(f'reqs_{args.model}.json', 'w') as f:
             json.dump(reqs, f)
         return
     else:
-        with open(f'reqs_{args.n_objects}.json', 'r') as f:
+        with open(f'reqs_{args.model}.json', 'r') as f:
             reqs = json.load(f)
         asyncio.run(measure_throughput(args.base_url, args.token, reqs, delay_between_requests=args.delay, time_limit=args.time_limit))
-        print("Sent requests: ", num_sent_reqs, "Completed requests: ", num_completed_reqs)
-        print("Throughput: ", num_completed_reqs / (time.time() - start_time))
-        with open(f'tput_{args.model}_{args.n_objects}_{args.delay}.csv', 'w') as f:
-            f.write('num_objects,method,path,time,num_completed_reqs\n')
-            for (i, path, method, _, _), tput in zip(reqs, logs):
-                f.write(f'{i},{method},{path},{tput}\n')
-
+        suffix = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        cum_tput = num_completed_reqs / (time.time() - start_time)
+        with open(f'tput_{args.model}_{args.n_threads}_{args.thread}_{args.delay}_{suffix}.csv', 'w') as f:
+            f.write('time/10,tput\n')
+            for i, tput in enumerate(logs):
+                f.write(f'{i},{tput}\n')
+            f.write(f'-1,{cum_tput}\n')
 
 if __name__ == '__main__':
     main()
