@@ -68,7 +68,7 @@ def insert_historylist(request, object_id, session):
     t = time.time()
     history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
     t = time.time() - t
-    print("query_historylist", object_id, t)
+    # print("query_historylist", object_id, t)
 
     history_list = HistoryList(obj_id=object_id)
     if history_list_hash_row:
@@ -81,7 +81,7 @@ def insert_historylist(request, object_id, session):
         history_list_hash_row.history_list_hash = history_list.to_hash()
         session.commit()
         t = time.time() - t
-        print("update_historylist", object_id, t)
+        # print("update_historylist", object_id, t)
     else:
         # New object, create history list hash
         # HACK: for latency measurement, we assume the initial history list comes from the client.
