@@ -1,6 +1,7 @@
 """
 Send asynchronous requests to the server to evaluate the throughput.
 """
+import os
 import time
 import json
 import argparse
@@ -166,12 +167,13 @@ def main():
     parser.add_argument('--thread', type=int, default=0)
 
     args = parser.parse_args()
+    # if not os.path.exists(f'reqs_{args.model}.json'):
     reqs = generate_requests(args.n_iters, args.model, args.n_objects)
     # with open(f'reqs_{args.model}.json', 'w') as f:
-    #     json.dump(reqs, f)
-    # return
+    # json.dump(reqs, f)
+    # else:
     # with open(f'reqs_{args.model}.json', 'r') as f:
-    #     reqs = json.load(f)
+    # reqs = json.load(f)
     asyncio.run(measure_throughput(args.base_url, args.token, reqs, delay_between_requests=args.delay, time_limit=args.time_limit))
     suffix = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     cum_tput = num_completed_reqs / (time.time() - start_time)
