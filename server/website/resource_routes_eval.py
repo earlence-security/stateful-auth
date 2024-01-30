@@ -263,6 +263,11 @@ def get_or_delete_event(eventId: UUID) -> Response | tuple[Response, UUID | list
 @require_oauth_stateful('profile')
 @update_history(session=db.session)
 def import_events() -> Response | tuple[Response, UUID | list[UUID]]:
+    # LOGGING
+    if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+        and hasattr(g, 'current_log'):
+        resource_api_start = time.time()
+
     ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
     user = current_token.user
     for id in ids:
@@ -272,12 +277,22 @@ def import_events() -> Response | tuple[Response, UUID | list[UUID]]:
         )
         db.session.add(event)
     db.session.commit()
+    # LOGGING
+    if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+        and hasattr(g, 'current_log'):
+        current_log = g.current_log
+        current_log.resource_api_time = time.time() - resource_api_start
     return make_response(jsonify({'ids': ids})), ids
 
 @resource_bp.route('/events', methods=['POST', 'GET'])
 @require_oauth_stateful('profile')
 @update_history(session=db.session)
 def create_events() -> Response | tuple[Response, UUID | list[UUID]]:
+    # LOGGING
+    if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+        and hasattr(g, 'current_log'):
+        resource_api_start = time.time()
+
     ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
     user = current_token.user
     for id in ids:
@@ -287,6 +302,11 @@ def create_events() -> Response | tuple[Response, UUID | list[UUID]]:
         )
         db.session.add(event)
     db.session.commit()
+    # LOGGING
+    if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+        and hasattr(g, 'current_log'):
+        current_log = g.current_log
+        current_log.resource_api_time = time.time() - resource_api_start
     return make_response(jsonify({'ids': ids})), ids
 
 @resource_bp.route('/events/<uuid:eventId>/instances', methods=['GET'])
@@ -319,6 +339,11 @@ def move_event(eventId:UUID) -> Response | tuple[Response, UUID | list[UUID]]:
 @require_oauth_stateful('profile')
 @update_history(session=db.session)
 def quick_add_event() -> Response | tuple[Response, UUID | list[UUID]]:
+    # LOGGING
+    if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+        and hasattr(g, 'current_log'):
+        resource_api_start = time.time()
+
     ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
     user = current_token.user
     for id in ids:
@@ -328,12 +353,22 @@ def quick_add_event() -> Response | tuple[Response, UUID | list[UUID]]:
         )
         db.session.add(event)
     db.session.commit()
+    # LOGGING
+    if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+        and hasattr(g, 'current_log'):
+        current_log = g.current_log
+        current_log.resource_api_time = time.time() - resource_api_start
     return make_response(jsonify({'ids': ids})), ids
 
 @resource_bp.route('/events/watch', methods=['POST'])
 @require_oauth_stateful('profile')
 @update_history(session=db.session)
 def watch() -> Response | tuple[Response, UUID | list[UUID]]:
+    # LOGGING
+    if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+        and hasattr(g, 'current_log'):
+        resource_api_start = time.time()
+
     ids = [UUID(id) for id in json.loads(flask.request.data).get('ids')]
     user = current_token.user
     for id in ids:
@@ -343,4 +378,9 @@ def watch() -> Response | tuple[Response, UUID | list[UUID]]:
         )
         db.session.add(event)
     db.session.commit()
+    # LOGGING
+    if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
+        and hasattr(g, 'current_log'):
+        current_log = g.current_log
+        current_log.resource_api_time = time.time() - resource_api_start
     return make_response(jsonify({'ids': ids})), ids

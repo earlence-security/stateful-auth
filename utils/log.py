@@ -25,6 +25,7 @@ class RequestLog:
     history_validation_time: float = 0.0
     policy_execution_time: float = 0.0
     history_update_time: float = 0.0    # Time to update the history hash value in the database
+    resource_api_time: float = 0.0
 
     def __str__(self):
         return f"RequestLog: {self.__dict__}"
