@@ -158,7 +158,7 @@ def main():
     parser.add_argument('--token', type=str, default='token')
     parser.add_argument('--base-url', type=str, default='http://127.0.0.1:5000/api')
     parser.add_argument('--model', type=str, default='stateful')
-    # parser.add_argument('--generate-reqs', action='store_true')
+    parser.add_argument('--generate-reqs', action='store_true')
     parser.add_argument('--n-iters', type=int, default=30)
     parser.add_argument('--n-objects', type=int, default=1)
     parser.add_argument('--delay', type=float, default=0.05, help="Delay between requests in ms")
@@ -169,8 +169,10 @@ def main():
     args = parser.parse_args()
     # if not os.path.exists(f'reqs_{args.model}.json'):
     reqs = generate_requests(args.n_iters, args.model, args.n_objects)
-    # with open(f'reqs_{args.model}.json', 'w') as f:
-    # json.dump(reqs, f)
+    if args.generate_reqs:
+        with open(f'reqs_{args.model}_{args.n_objects}.json', 'w') as f:
+            json.dump(reqs, f)
+        return
     # else:
     # with open(f'reqs_{args.model}.json', 'r') as f:
     # reqs = json.load(f)

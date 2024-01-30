@@ -160,8 +160,8 @@ def main():
     args = parser.parse_args()
     
     reqs = generate_requests(args.n_iters, args.deny_ratio, args.model)
-    with open('reqs.json', 'w') as f:
-        json.dump(reqs, f, indent=4)
+    # with open('reqs.json', 'w') as f:
+    # json.dump(reqs, f, indent=4)
 
     # with open('reqs.json', 'r') as f:
     #     reqs = json.load(f)
