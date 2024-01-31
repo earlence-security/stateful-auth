@@ -3,7 +3,9 @@ import functools
 import flask
 import uuid
 import time
-import json
+import re
+import orjson as json
+import ijson
 import hashlib
 from flask import Request, Response, g, current_app
 
@@ -21,6 +23,14 @@ from server.website.models import HistoryListHash
 # }
 # Generate the json to be stored from historylist,
 # if old_storage is provided, then update from that storage
+
+def find_key_value(json_string, target_key):
+    pattern = r'"' + re.escape(target_key) + r'"\s*:\s*\[([^\]]*)\]'
+    match = re.search(pattern, json_string)
+    if match:
+        return '[' + match.group(1).strip() + ']'
+    else:
+        return None
 
 def validate_history(session):
     """Returns whether a batch of history list in the request header is valid."""
@@ -61,7 +71,6 @@ def validate_historylist(history_list, object_id, token, request, session):
         return True
     return history_list_hash_row.history_list_hash == history_list.to_hash()
 
-
 def insert_historylist(request, object_id, session):
     """Update one single historylist in db."""
     token = get_token_from_request(request)
@@ -87,9 +96,15 @@ def insert_historylist(request, object_id, session):
         # HACK: for latency measurement, we assume the initial history list comes from the client.
         # print("insert_historylist", object_id)
         # t = time.time()
+
+        # Approach 1: use re
+        # history_list = find_key_value(request.headers.get('Authorization-History'), str(object_id))
+
+        # Approach 2: use orjson
         batch_history_list = json.loads(request.headers.get('Authorization-History'))
         history_list = {str(object_id): batch_history_list[str(object_id)]}
-        history_list_hash = hashlib.sha256(json.dumps(history_list).encode()).hexdigest()
+        # print(history_list)
+        history_list_hash = hashlib.sha256(json.dumps(history_list)).hexdigest()
         # print("parse_json", object_id, time.time() - t)
         # history_list.append(new_history)    # TODO: Recover this.
         history_list_hash = HistoryListHash(
@@ -100,7 +115,7 @@ def insert_historylist(request, object_id, session):
         session.add(history_list_hash)
         # t = time.time() - t
         # print("insert_historylist", object_id, t)
-    return history_list
+    return {str(object_id): history_list}
 
 
 def update_history(session):
@@ -133,7 +148,6 @@ def update_history(session):
                 session.commit()
                 # new_batch_history_list = BatchHistoryList(historylists=history_lists)
                 # Add updated history list to the response header
-                resp.headers['Set-Authorization-History'] = json.dumps(history_lists)
             elif request.method == 'DELETE':
                 for object_id in ids:
                     history_list_hash = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
