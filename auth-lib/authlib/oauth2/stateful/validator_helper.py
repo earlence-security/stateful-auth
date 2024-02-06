@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from wasmtime import Linker, Module, Store, WasiConfig
 import os
 import tempfile
+import psutil
 
 # Build the request JSON string to pass into policy program given a request object
 def build_request_JSON(request):
@@ -42,13 +43,31 @@ def build_request_JSON(request):
 
     return json_data, total_len
 
+
+# Function to measure memory usage
+def measure_memory():
+    process = psutil.Process()
+    memory_info = process.memory_info()
+    return memory_info.vms  # Resident Set Size (memory actually used)
+
+
 def run_policy(linker, policy_module, policy_hash, request_str, history_str):
     # Design: https://docs.rs/wasmtime/latest/wasmtime/#example-architecture
 
     config = WasiConfig()
     if not history_str:
         history_str = '{}'
+    print("here1")
+    print(history_str)
+    print(request_str)
+    print(policy_hash)
+
+    # Measure memory before running the WebAssembly program
+    start_memory = measure_memory()
+
     config.argv = (policy_hash, request_str, history_str)
+
+    print("1", measure_memory() - start_memory)
     config.preopen_dir(".", "/")
     # print("running policy with hash: " + policy_hash)
     with tempfile.TemporaryDirectory() as chroot:
@@ -67,19 +86,37 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
         store = Store(linker.engine)
         store.set_wasi(config)
 
+        print("2", measure_memory() - start_memory)
+
         # instantiated module
         # both new store and instantiate are very cheap
         instance = linker.instantiate(store, policy_module)
 
+        print("3", measure_memory() - start_memory)
+
+
         # _start is the default wasi main function
         start = instance.exports(store)["_start"]
+        memory = instance.exports(store)["memory"]
+
+        print("4", measure_memory() - start_memory)
+        print("4-1", memory.size(store))
 
         try:
             start(store)
         except Exception as e:
-            print(e)
+            print("error:", e)
             raise
-            
+
+        # Measure memory after running the WebAssembly program
+        end_memory = measure_memory()
+        print("5", memory.size(store))
+
+
+        # Calculate memory usage
+        memory_usage = end_memory - start_memory
+        print(f"Memory usage: {memory_usage} bytes")
+
         # # LOGGING
         # policy_execution_time = time.time() - policy_execution_start
 
