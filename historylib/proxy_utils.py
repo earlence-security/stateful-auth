@@ -38,7 +38,7 @@ def get_history_list_str_proxy(session):
         else:
             history_list_batch.append(HistoryList(json_str=history_list_row.history_list))
 
-    return BatchHistoryList(historylists=history_list_batch).to_json()
+    return BatchHistoryList(historylists=history_list_batch).to_json().decode('utf-8')
 
 
 def update_history_list_proxy(request, object_id, session):

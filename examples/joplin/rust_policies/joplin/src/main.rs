@@ -7,6 +7,7 @@ use std::collections::HashMap;
 struct Request {
     method: String,
     uri: String,
+    path: String,
     body: String,
     headers: HashMap<String, String>,
     time: f32
@@ -31,16 +32,24 @@ fn main() {
     let parsed_hist: HistoryMap = read_history(hist_str);
 
     // policy
-    if parsed_req.uri.starts_with("http://127.0.0.1:5000/api/files/delete_v2") && parsed_req.method == "POST"{
-        for (obj_id, history) in parsed_hist {
+    if parsed_req.path.starts_with("/api/files") {
+        if parsed_req.path == "/api/files/create_folder_v2" || parsed_req.path == "/api/files/upload" {
+            println!("Accept");
+            return
+        }
+        for (_obj_id, history) in parsed_hist {
+            let mut found = false;
             for entry in history {
-                if entry.method == "POST" && entry.api == "/api/files/upload" {
-                    println!("Accept");
-                    return
+                if entry.api == "/api/files/create_folder_v2" || entry.api == "/api/files/upload" {
+                    found = true;
                 }
             }
+            if found == false {
+                // println!("Deny");
+                // return
+            }
         }
-        println!("Deny");
+        println!("Accept");
     } else {
         // accept for other apis for debugging purposes
         // should defaut to deny
