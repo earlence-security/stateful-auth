@@ -48,7 +48,7 @@ def build_request_JSON(request):
 def measure_memory():
     process = psutil.Process()
     memory_info = process.memory_info()
-    return memory_info.vms  # Resident Set Size (memory actually used)
+    return memory_info.rss  # Resident Set Size (memory actually used)
 
 
 def run_policy(linker, policy_module, policy_hash, request_str, history_str):
@@ -61,10 +61,6 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
     print(history_str)
     print(request_str)
     print(policy_hash)
-
-    # Measure memory before running the WebAssembly program
-    start_memory = measure_memory()
-
     config.argv = (policy_hash, request_str, history_str)
 
     print("1", measure_memory() - start_memory)
@@ -102,6 +98,10 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
         print("4", measure_memory() - start_memory)
         print("4-1", memory.size(store))
 
+
+        # Measure memory before running the WebAssembly program
+        start_memory = measure_memory()
+
         try:
             start(store)
         except Exception as e:
@@ -110,8 +110,6 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
 
         # Measure memory after running the WebAssembly program
         end_memory = measure_memory()
-        print("5", memory.size(store))
-
 
         # Calculate memory usage
         memory_usage = end_memory - start_memory

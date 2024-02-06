@@ -178,7 +178,7 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 # print("history input to policy program is: ", history_list_str)
                 result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list_str)
             except Exception as e:
-                print(e)
+                print("policy execution error:", e)
                 raise PolicyCrashedError()
             
             # LOGGING
