@@ -67,39 +67,22 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
         config.stdout_file = out_log
         config.stderr_file = err_log
 
-        # # LOGGING
-        # policy_execution_start = time.time()
-
         # Store is a unit of isolation in wasmtime
         # containes wasm objects
         # We must have one Store per request, because Store dont' have GC and isolation.
         store = Store(linker.engine)
         store.set_wasi(config)
 
-        print("2", measure_memory() - start_memory)
-
         # instantiated module
         # both new store and instantiate are very cheap
         instance = linker.instantiate(store, policy_module)
 
-        print("3", measure_memory() - start_memory)
-
-
         # _start is the default wasi main function
         start = instance.exports(store)["_start"]
-        memory = instance.exports(store)["memory"]
-
-        print("4", measure_memory() - start_memory)
-        print("4-1", memory.size(store))
-
+        # memory = instance.exports(store)["memory"]
 
         # Measure memory before running the WebAssembly program
-        start_memory = measure_memory()
-
-
-        # Measure memory before running the WebAssembly program
-        start_memory = measure_memory()
-
+        # start_memory = measure_memory()
         try:
             start(store)
         except Exception as e:
@@ -107,15 +90,11 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
             raise
 
         # Measure memory after running the WebAssembly program
-        end_memory = measure_memory()
+        # end_memory = measure_memory()
 
         # Calculate memory usage
-        memory_usage = end_memory - start_memory
-        print(f"Memory usage: {memory_usage} bytes")
-
-        # # LOGGING
-        # policy_execution_time = time.time() - policy_execution_start
-
+        # memory_usage = end_memory - start_memory
+        # print(f"Memory usage: {memory_usage} bytes")
         with open(out_log) as f:
             result = f.read()
             # print("Policy returned: " + result)
@@ -125,4 +104,3 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
                 return True
             else:
                 return False
-        

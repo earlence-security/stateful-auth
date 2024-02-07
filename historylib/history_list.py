@@ -2,7 +2,7 @@
 # maxlen(list) = number of apis able to access this object
 
 import time
-import orjson as json
+import ujson as json
 from .history import History
 import hashlib
 

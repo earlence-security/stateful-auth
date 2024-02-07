@@ -8,8 +8,7 @@ from uuid import UUID
 from datetime import datetime
 from flask import Blueprint, Response, jsonify, make_response, current_app, request, g
 
-from .oauth2 import require_oauth
-from .oauth2 import require_oauth_stateful
+from .oauth2 import require_oauth, require_oauth_stateful, authorization
 from .models import db, Event, Email
 from authlib.integrations.flask_oauth2 import current_token
 
@@ -98,7 +97,7 @@ def send_money():
 
 @resource_bp.route('/emails/<uuid:emailId>', methods=['GET', 'DELETE'])
 @require_oauth_stateful()
-@update_history(session=db.session)
+@update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 def get_or_delete_emails(emailId: UUID) -> Response | tuple[Response, UUID | list[UUID]]:
     '''Endpoint for get or delete an email.'''
     user = current_token.user
@@ -121,7 +120,7 @@ def get_or_delete_emails(emailId: UUID) -> Response | tuple[Response, UUID | lis
 
 @resource_bp.route('/emails', methods=['GET', 'POST'])
 @require_oauth_stateful()
-@update_history(session=db.session)
+@update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 def list_or_insert_email() -> Response | tuple[Response, UUID | list[UUID]]:
     '''Endpoint for list all the email or insert an new email.'''
     user = current_token.user
@@ -148,7 +147,7 @@ def list_or_insert_email() -> Response | tuple[Response, UUID | list[UUID]]:
     
 @resource_bp.route('/emails/batch-get', methods=['GET', 'POST'])
 @require_oauth_stateful()
-@update_history(session=db.session)
+@update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 def batch_get_email() -> Response | tuple[Response, UUID | list[UUID]]:
     '''Endpoint for list all the email or insert an new email.'''
     user = current_token.user
@@ -171,7 +170,7 @@ def batch_get_email() -> Response | tuple[Response, UUID | list[UUID]]:
 
 # @resource_bp.route('/events/<uuid:eventId>', methods=['GET', 'DELETE', 'POST'])
 # @require_oauth_stateful('profile')  # TODO: Replace scope w/ other value (eg. "events")
-# @update_history(session=db.session)
+# @update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 # def get_or_delete_event(eventId: UUID) -> Response | tuple[Response, UUID | list[UUID]]:
 #     '''Endpoint for get or delete an event.'''
 #     user = current_token.user
@@ -211,7 +210,7 @@ def batch_get_email() -> Response | tuple[Response, UUID | list[UUID]]:
 
 # @resource_bp.route('/events', methods=['GET', 'POST'])
 # @require_oauth_stateful('profile')  # TODO: Replace scope w/ other value (eg. "events")
-# @update_history(session=db.session)
+# @update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 # def list_or_insert_event() -> Response | tuple[Response, UUID | list[UUID]]:
 #     '''Endpoint for list all the events or insert an new event.'''
 #     user = current_token.user
@@ -248,7 +247,7 @@ def batch_get_email() -> Response | tuple[Response, UUID | list[UUID]]:
 # Google Calendar Endpoints but doing nothing. 
 @resource_bp.route('/events/<uuid:eventId>', methods=['GET', 'DELETE', 'POST', 'PATCH', 'PUT'])
 @require_oauth_stateful('profile')
-@update_history(session=db.session)
+@update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 def get_or_delete_event(eventId: UUID) -> Response | tuple[Response, UUID | list[UUID]]:
     user = current_token.user
     event = Event(
@@ -261,7 +260,7 @@ def get_or_delete_event(eventId: UUID) -> Response | tuple[Response, UUID | list
 
 @resource_bp.route('/events/import', methods=['POST'])
 @require_oauth_stateful('profile')
-@update_history(session=db.session)
+@update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 def import_events() -> Response | tuple[Response, UUID | list[UUID]]:
     # LOGGING
     if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
@@ -286,7 +285,7 @@ def import_events() -> Response | tuple[Response, UUID | list[UUID]]:
 
 @resource_bp.route('/events', methods=['POST', 'GET'])
 @require_oauth_stateful('profile')
-@update_history(session=db.session)
+@update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 def create_events() -> Response | tuple[Response, UUID | list[UUID]]:
     # LOGGING
     if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
@@ -311,7 +310,7 @@ def create_events() -> Response | tuple[Response, UUID | list[UUID]]:
 
 @resource_bp.route('/events/<uuid:eventId>/instances', methods=['GET'])
 @require_oauth_stateful('profile')
-@update_history(session=db.session)
+@update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 def list_event_instances(eventId:UUID) -> Response | tuple[Response, UUID | list[UUID]]:
     user = current_token.user
     event = Event(
@@ -324,7 +323,7 @@ def list_event_instances(eventId:UUID) -> Response | tuple[Response, UUID | list
 
 @resource_bp.route('/events/<uuid:eventId>/move', methods=['POST'])
 @require_oauth_stateful('profile')
-@update_history(session=db.session)
+@update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 def move_event(eventId:UUID) -> Response | tuple[Response, UUID | list[UUID]]:
     user = current_token.user
     event = Event(
@@ -337,7 +336,7 @@ def move_event(eventId:UUID) -> Response | tuple[Response, UUID | list[UUID]]:
 
 @resource_bp.route('/events/quickAdd', methods=['POST'])
 @require_oauth_stateful('profile')
-@update_history(session=db.session)
+@update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 def quick_add_event() -> Response | tuple[Response, UUID | list[UUID]]:
     # LOGGING
     if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \
@@ -362,7 +361,7 @@ def quick_add_event() -> Response | tuple[Response, UUID | list[UUID]]:
 
 @resource_bp.route('/events/watch', methods=['POST'])
 @require_oauth_stateful('profile')
-@update_history(session=db.session)
+@update_history(session=db.session, wasm_linker=authorization.wasm_linker)
 def watch() -> Response | tuple[Response, UUID | list[UUID]]:
     # LOGGING
     if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \

@@ -4,7 +4,7 @@ import flask
 import uuid
 import time
 import re
-import orjson as json
+import ujson as json
 import ijson
 import hashlib
 from flask import Request, Response, g, current_app
@@ -110,7 +110,7 @@ def insert_historylist(request, object_id, session):
         batch_history_list = json.loads(request.headers.get('Authorization-History'))
         history_list = {str(object_id): batch_history_list[str(object_id)]}
         # print(history_list)
-        history_list_hash = hashlib.sha256(json.dumps(history_list)).hexdigest()
+        history_list_hash = hashlib.sha256(json.dumps(history_list).encode()).hexdigest()
         # print("parse_json", object_id, time.time() - t)
         # history_list.append(new_history)    # TODO: Recover this.
         history_list_hash = HistoryListHash(

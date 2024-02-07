@@ -1,7 +1,7 @@
 # defines a list of historylist to send over wire
 
 import time
-import orjson as json
+import ujson as json
 from .history import History
 from .history_list import HistoryList
 import hashlib
