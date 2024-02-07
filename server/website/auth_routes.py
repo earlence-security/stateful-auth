@@ -8,7 +8,7 @@ from werkzeug.security import gen_salt
 from werkzeug.utils import secure_filename
 from authlib.oauth2 import OAuth2Error
 from authlib.oauth2.rfc6750 import UnregisteredPolicyError
-from .models import db, User, OAuth2Client, Policy
+from .models import db, User, OAuth2Client, Policy, UpdateProgram
 from .oauth2 import authorization
 from .utils import current_user, split_by_crlf
 from wasmtime import Linker, Module, Store, WasiConfig
@@ -78,6 +78,17 @@ def create_client():
         # the endpoint for getting policies
         "policy_endpoint": form["policy_endpoint"],
     }
+
+    # TODO: Client should provide update program
+    updateprogram_path = os.path.join(current_app.config['UPDATE_PROGRAM_FOLDER'], "update_program.wasm")
+    update_module = Module.from_file(authorization.wasm_engine, updateprogram_path)
+    update = UpdateProgram(
+        file_name = "update_program.wasm",
+        client_id = client_id,
+        serialized_module = update_module.serialize(),
+    )
+    db.session.add(update)
+    db.session.commit()
 
     policy_files = []
 
