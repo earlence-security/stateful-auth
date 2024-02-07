@@ -57,13 +57,7 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
     config = WasiConfig()
     if not history_str:
         history_str = '{}'
-    print("here1")
-    print(history_str)
-    print(request_str)
-    print(policy_hash)
     config.argv = (policy_hash, request_str, history_str)
-
-    print("1", measure_memory() - start_memory)
     config.preopen_dir(".", "/")
     # print("running policy with hash: " + policy_hash)
     with tempfile.TemporaryDirectory() as chroot:
@@ -97,6 +91,10 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
 
         print("4", measure_memory() - start_memory)
         print("4-1", memory.size(store))
+
+
+        # Measure memory before running the WebAssembly program
+        start_memory = measure_memory()
 
 
         # Measure memory before running the WebAssembly program

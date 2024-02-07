@@ -74,7 +74,16 @@ class HistoryListHash(db.Model):
     @property
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+    
 
+class UpdateProgram(db.Model):
+    __tablename__ = "update_program"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    file_name = db.Column(db.String(255))
+    client_id = db.Column(db.Integer, db.ForeignKey('oauth2_client.id'))
+    client = db.relationship('OAuth2Client')
+    serialized_module = db.Column(db.LargeBinary, unique=True)
 
 ######################
 #

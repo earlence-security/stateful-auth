@@ -5,6 +5,7 @@ import orjson as json
 
 class History:
 
+    # TODO: Make definition of state generic
     def __init__(self, api, method, counter=0, timestamp=None):
         self.api = api
         self.method = method
