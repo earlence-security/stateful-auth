@@ -83,7 +83,7 @@ class UpdateProgram(db.Model):
     file_name = db.Column(db.String(255))
     client_id = db.Column(db.Integer, db.ForeignKey('oauth2_client.id'))
     client = db.relationship('OAuth2Client')
-    serialized_module = db.Column(db.LargeBinary, unique=True)
+    serialized_module = db.Column(db.LargeBinary)
 
 ######################
 #

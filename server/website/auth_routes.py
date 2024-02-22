@@ -79,17 +79,6 @@ def create_client():
         "policy_endpoint": form["policy_endpoint"],
     }
 
-    # TODO: Client should provide update program
-    updateprogram_path = os.path.join(current_app.config['UPDATE_PROGRAM_FOLDER'], "update_program.wasm")
-    update_module = Module.from_file(authorization.wasm_engine, updateprogram_path)
-    update = UpdateProgram(
-        file_name = "update_program.wasm",
-        client_id = client_id,
-        serialized_module = update_module.serialize(),
-    )
-    db.session.add(update)
-    db.session.commit()
-
     policy_files = []
 
     # get program from endpoint and store in db
@@ -123,6 +112,24 @@ def create_client():
         # Record the hash value in client_metadata['policy_hashes']
         policy_hash = filename.split('.')[0]
         client_metadata['policy_hashes'].append(policy_hash)
+
+    # Get State Updater Program
+    if 'updater_wasm' in request.files and request.files['updater_wasm'].filename and allowed_file(request.files['updater_wasm'].filename):
+        # Save the WASM file
+        file = request.files['updater_wasm']
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+        print(f"Saved state updater: {filename}")
+        update_module = Module.from_file(authorization.wasm_engine, filepath)
+        update = UpdateProgram(
+            file_name = filename,
+            client_id = client_id,
+            serialized_module = update_module.serialize(),
+        )
+        db.session.add(update)
+        db.session.commit()
 
     for f in policy_files:
         # Compile the wasm files to Modules
