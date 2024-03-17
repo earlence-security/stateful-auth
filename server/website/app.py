@@ -5,7 +5,7 @@ from .models import db
 from .oauth2 import config_oauth
 from .auth_routes import auth_bp
 # HACK: import resource_bp from resource_routes_test.py for latency and tput measurement
-from .resource_routes_eval import resource_bp
+from .resource_routes import resource_bp
 # from .resource_routes import resource_bp
 
 

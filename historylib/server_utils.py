@@ -124,6 +124,26 @@ def insert_historylist(request, object_id, session):
     return {str(object_id): history_list}
 
 
+def insert_batch_history_wasm(linker, request, ids, session):
+    token = get_token_from_request(request)
+    oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
+    oauth2_client = session.query(OAuth2Client).filter_by(user_id=oauth2_token.user_id).first()
+    # update_program = session.query(UpdateProgram).filter_by(client_id=oauth2_client.client_id).first()
+    update_program = session.query(UpdateProgram).filter_by(file_name="update_program_1.wasm").first()
+    
+    history_list_str = request.headers.get('Authorization-History')
+    history_list = json.loads(history_list_str) if history_list_str else {}
+    for id in ids:
+        if id not in history_list:
+            history_list.update({str(id): {}})
+    print(history_list)
+    new_history_list_str = run_update_program(linker, update_program, build_request_JSON(request), history_list_str)
+
+    print(new_history_list_str)
+
+    return new_history_list_str
+
+
 def insert_historylist_wasm(linker, request, object_id, session):
     """Update one single historylist in db."""
     token = get_token_from_request(request)
@@ -171,14 +191,16 @@ def run_update_program(wasm_linker, update_program, request_str, history_str):
 
     # newhistory = runwasm(old_history)
     # return newhistory
-
+    # Handling empty history string
+    if not history_str:
+        history_str = '{}'
     config = WasiConfig()
     config.argv = (update_program.file_name, request_str, history_str)
     config.preopen_dir(".", "/")
     with tempfile.TemporaryDirectory() as chroot:
 
-        out_log = os.path.join(chroot, "out.log")
-        err_log = os.path.join(chroot, "err.log")
+        out_log = os.path.join(chroot, "out_1.log")
+        err_log = os.path.join(chroot, "err_1.log")
         config.stdout_file = out_log
         config.stderr_file = err_log
 
@@ -210,6 +232,7 @@ def run_update_program(wasm_linker, update_program, request_str, history_str):
 
         with open(out_log) as f:
             result = f.read()
+            print("result:", result)
             return result
 
 
@@ -236,14 +259,15 @@ def update_history(session, wasm_linker):
 
             # If create, update, or get an object, we should update the history list hash.
             if (request.method == 'POST' or request.method == 'GET'):
-                newhistories = {}
-                for object_id in ids:
-                    newhistory_list = insert_historylist_wasm(wasm_linker, request, object_id, session)
-                    newhistories.update(newhistory_list)
+                # newhistories = {}
+                # for object_id in ids:
+                #     newhistory_list = insert_historylist_wasm(wasm_linker, request, object_id, session)
+                #     newhistories.update(newhistory_list)
                 # newhistories = BatchHistoryList(historylists=newhistories)
                 # Add updated history list to the response header
                 # resp.headers['Set-Authorization-History'] = newhistories.to_json()
-                resp.headers['Set-Authorization-History'] = json.dumps(newhistories)
+                new_history_list_str = insert_batch_history_wasm(wasm_linker, request, ids, session)
+                resp.headers['Set-Authorization-History'] = new_history_list_str
             elif request.method == 'DELETE':
                 for object_id in ids:
                     history_list_hash = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()

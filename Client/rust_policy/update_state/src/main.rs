@@ -10,7 +10,7 @@ struct Request {
     path: String,
     body: String,
     headers: HashMap<String, String>,
-    time: f64
+    time: f32
 }
 
 #[derive(Deserialize, Serialize)]
@@ -29,32 +29,7 @@ fn main() {
     let hist_str = &args[2];
 
     let parsed_req: Request = read_json(json_str);
-    let mut parsed_hist: HistoryMap = read_history(hist_str);
-
-    for (_obj_id, history) in parsed_hist.iter_mut() {
-
-        // find an entry to update (same method and api)
-        for entry in history.iter_mut() {
-            if entry.method == parsed_req.method && entry.api == parsed_req.path {
-                entry.counter = entry.counter + 1;
-                entry.timestamp = parsed_req.time;
-                let ret = serde_json::to_string(&parsed_hist).unwrap();
-                print!("{}", ret);
-                return 
-            }
-        }
-
-        // not found, append a new history
-        let newhist = History {api: parsed_req.path, method: parsed_req.method, counter: 0, timestamp: parsed_req.time};
-        history.push(newhist);
-
-        let ret = serde_json::to_string(&parsed_hist).unwrap();
-        print!("hello");
-        // print!("{}", ret);
-        println!("{}", serde_json::to_string(&parsed_hist).unwrap());
-
-        return
-    }
+    let parsed_hist: HistoryMap = read_history(hist_str);
 }
 
 fn read_json(json_str: &str) -> Request {

@@ -1,0 +1,1 @@
+Dummy policy that allows any request

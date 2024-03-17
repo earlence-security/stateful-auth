@@ -1,0 +1,1 @@
+Token can only access "http://127.0.0.1:5000/api/me", reguardless of scope

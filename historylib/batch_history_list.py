@@ -44,7 +44,7 @@ class BatchHistoryList:
     def to_json(self):
         entries_dict = {}
         for k, v in self.entries.items():
-            entries_dict.update(v.to_dict())
+            entries_dict.update({k: v.to_dict()})
         return json.dumps(entries_dict)
     
     def get_num_objects(self):

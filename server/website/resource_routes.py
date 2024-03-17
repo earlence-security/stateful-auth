@@ -228,7 +228,7 @@ def list_or_insert_event() -> Response | tuple[Response, UUID | list[UUID]]:
         else:
             t = time.time()
         event = Event(
-            id=UUID(data.get('id', None)),
+            # id=UUID(data.get('id', None)),
             user_id=user.id,
             title=data.get('title', '(No title)'),
             description=data.get('description', ''),
