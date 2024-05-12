@@ -147,10 +147,13 @@ def create_client():
             db.session.add(policy)
             db.session.commit()
 
+    # generate the secrets
     if form['token_endpoint_auth_method'] == 'none':
         client.client_secret = ''
     else:
         client.client_secret = gen_salt(48)
+
+    client.hmac_key = gen_salt(64)
 
     # Set client metadata
     client.set_client_metadata(client_metadata)

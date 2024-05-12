@@ -52,14 +52,19 @@ def validate_history(session):
 def validate_historylist(history_list, object_id, token, request, session):
     """Returns whether a history list in the request header is valid."""
     history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
+    oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
+    oauth2_client = session.query(OAuth2Client).filter_by(user_id=oauth2_token.user_id).first()
+    hmac_key = oauth2_client.hmac_key
+
     if not history_list_hash_row:
         if not history_list.entries:
             return True
         else:
             return False
-    return history_list_hash_row.history_list_hash == history_list.to_hash()
+    return history_list_hash_row.history_list_hash == history_list.to_hmac(hmac_key)
 
 
+# deprecated and not used
 def insert_historylist(request, object_id, session):
     """Update one single historylist in db."""
     token = get_token_from_request(request)
@@ -87,12 +92,13 @@ def insert_historylist(request, object_id, session):
     return history_list
 
 
-def insert_historylist_wasm(linker, request, object_id, session):
+def insert_historylist_wasm(linker, request, object_id, session): 
     """Update one single historylist in db."""
     token = get_token_from_request(request)
     oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
     oauth2_client = session.query(OAuth2Client).filter_by(user_id=oauth2_token.user_id).first()
     update_program = session.query(UpdateProgram).filter_by(client_id=oauth2_client.client_id).first()
+    hmac_key = oauth2_client.hmac_key
 
     history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
 
@@ -105,7 +111,7 @@ def insert_historylist_wasm(linker, request, object_id, session):
         newhist_string = run_update_program(linker, update_program, build_request_JSON(request), history_list.to_json())
         newhist_list = HistoryList(json_str=newhist_string)
 
-        history_list_hash_row.history_list_hash = newhist_list.to_hash()
+        history_list_hash_row.history_list_hash = newhist_list.to_hmac(hmac_key)
         session.commit()
         return newhist_list
     else:
@@ -119,7 +125,7 @@ def insert_historylist_wasm(linker, request, object_id, session):
         history_list_hash = HistoryListHash(
             object_id=object_id,
             access_token=token,
-            history_list_hash=newhist_list.to_hash(),
+            history_list_hash=newhist_list.to_hmac(hmac_key),
         )
         session.add(history_list_hash)
         session.commit()

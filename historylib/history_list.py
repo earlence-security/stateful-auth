@@ -5,10 +5,16 @@ import time
 import json
 from .history import History
 import hashlib
+import hmac
 
 # {
 #   obj_id1 : [history_entry1, history_entry2, ...]
 # }
+
+# TODO: New def:
+# obj_id1 : str(history_entry1, history_entry2, ...)
+# ..
+#
 class HistoryList:
     # takes an obj_id and a json representation of a list of history objects
     def __init__(self, obj_id="", json_str=None):
@@ -62,9 +68,13 @@ class HistoryList:
         result_dict = {self.obj_id: history_dict_list}
         return result_dict
 
-    # get hash of a list of histories
+    # get hash of a list of histories deprecated
     def to_hash(self):
         result = hashlib.sha256(self.to_json().encode()).hexdigest()
         return result
     
+    # get hmac of a list of histories
+    def to_hmac(self, key):
+        result = hmac.new(key.encode(), self.to_json().encode(), hashlib.sha256).hexdigest()
+        return result
 
