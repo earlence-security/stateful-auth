@@ -20,5 +20,6 @@ app = create_app({
     'ENABLE_STATEFUL_AUTH': True,
     'UPLOAD_FOLDER': os.path.join(cwd, 'policies'),
     'UPDATE_PROGRAM_FOLDER': os.path.join(cwd, 'update_program'),
+    'UPDATE_PROGRAM_NAME': 'update_program.wasm',
     'ENABLE_LOGGING': True,
 })

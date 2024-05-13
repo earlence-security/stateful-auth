@@ -80,10 +80,11 @@ def create_client():
     }
 
     # TODO: Client should provide update program
-    updateprogram_path = os.path.join(current_app.config['UPDATE_PROGRAM_FOLDER'], "update_program.wasm")
+    updateprogram_path = os.path.join(current_app.config['UPDATE_PROGRAM_FOLDER'], current_app.config['UPDATE_PROGRAM_NAME'])
+    print(f"Update program path: {updateprogram_path}")
     update_module = Module.from_file(authorization.wasm_engine, updateprogram_path)
     update = UpdateProgram(
-        file_name = "update_program_1.wasm",
+        file_name = current_app.config['UPDATE_PROGRAM_NAME'],
         client_id = client_id,
         serialized_module = update_module.serialize(),
     )

@@ -127,56 +127,42 @@ def insert_historylist(request, object_id, session):
 def insert_batch_history_wasm(linker, request, ids, session):
     token = get_token_from_request(request)
     oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
-    oauth2_client = session.query(OAuth2Client).filter_by(user_id=oauth2_token.user_id).first()
-    # update_program = session.query(UpdateProgram).filter_by(client_id=oauth2_client.client_id).first()
-    update_program = session.query(UpdateProgram).filter_by(file_name="update_program_1.wasm").first()
-    
+    # NOTE: This is a bug. Should fix in main branch.
+    # oauth2_client = session.query(OAuth2Client).filter_by(user_id=oauth2_token.user_id).first()
+    update_program = session.query(UpdateProgram).filter_by(client_id=oauth2_token.client_id).first()
+
     history_list_str = request.headers.get('Authorization-History')
-    history_list = json.loads(history_list_str) if history_list_str else {}
-    for id in ids:
-        if id not in history_list:
-            history_list.update({str(id): {}})
-    print(history_list)
+    # print("History in request:", history_list_str)
+    # NOTE: We can require the client to always pass {object_id: ""} in the header when there is no history.
+    # history_list = json.loads(history_list_str) if history_list_str else {}
+    # for id in ids:
+    #     if str(id) not in history_list:
+    #         history_list.update({str(id): {}})
     new_history_list_str = run_update_program(linker, update_program, build_request_JSON(request), history_list_str)
-
-    print(new_history_list_str)
-
+    # print("History in response:", new_history_list_str)
     return new_history_list_str
 
 
-def insert_historylist_wasm(linker, request, object_id, session):
+def insert_historylist_wasm(linker, request, object_id, session, batch_history_list_json):
     """Update one single historylist in db."""
     token = get_token_from_request(request)
     oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
-    oauth2_client = session.query(OAuth2Client).filter_by(user_id=oauth2_token.user_id).first()
-    update_program = session.query(UpdateProgram).filter_by(client_id=oauth2_client.client_id).first()
+    update_program = session.query(UpdateProgram).filter_by(client_id=oauth2_token.client_id).first()
 
     history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
 
-    history_list = HistoryList(obj_id=object_id)
+    history_list_json = json.dumps({str(object_id): batch_history_list_json[str(object_id)]})
+    # print("History in request:", history_list_json)
+    newhist_string = run_update_program(linker, update_program, build_request_JSON(request), history_list_json)
+    newhist_list = {str(object_id): newhist_string}
     if history_list_hash_row:
         # Existing object, update history list hash
-        old_batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
-        history_list = old_batch_history_list.entries[str(object_id)]
-        
-        newhist_string = run_update_program(linker, update_program, build_request_JSON(request), history_list.to_json())
-        newhist_list = HistoryList(json_str=newhist_string)
-
-        history_list_hash_row.history_list_hash = newhist_list.to_hash()
+        # old_batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
+        history_list_hash_row.history_list_hash = hashlib.sha256(json.dumps(newhist_list).encode()).hexdigest()
         session.commit()
-        return newhist_list
     else:
         # New object, create history list hash
-
-        #replace with wasm
-        #history_list.append(new_history)
-        # newhist_string = run_update_program(linker, update_program, build_request_JSON(request), history_list.to_json())
-        # newhist_list = HistoryList(json_str=newhist_string)
-        batch_history_list = json.loads(request.headers.get('Authorization-History'))
-        history_list = {str(object_id): batch_history_list[str(object_id)]}
-        # print(history_list)
-        history_list_hash = hashlib.sha256(json.dumps(history_list).encode()).hexdigest()
-
+        history_list_hash = hashlib.sha256(json.dumps(newhist_list).encode()).hexdigest()
         history_list_hash_row = HistoryListHash(
             object_id=object_id,
             access_token=token,
@@ -184,7 +170,7 @@ def insert_historylist_wasm(linker, request, object_id, session):
         )
         session.add(history_list_hash_row)
         session.commit()
-        return history_list
+    return newhist_list
 
 
 def run_update_program(wasm_linker, update_program, request_str, history_str):
@@ -259,15 +245,22 @@ def update_history(session, wasm_linker):
 
             # If create, update, or get an object, we should update the history list hash.
             if (request.method == 'POST' or request.method == 'GET'):
+                # Opt 1: Update batch history by iterating them in Python.
+                # batch_history_list_json = json.loads(request.headers.get('Authorization-History'))
                 # newhistories = {}
                 # for object_id in ids:
-                #     newhistory_list = insert_historylist_wasm(wasm_linker, request, object_id, session)
+                #     newhistory_list = insert_historylist_wasm(wasm_linker, request, object_id, session, 
+                #                                               batch_history_list_json=batch_history_list_json)
                 #     newhistories.update(newhistory_list)
-                # newhistories = BatchHistoryList(historylists=newhistories)
-                # Add updated history list to the response header
-                # resp.headers['Set-Authorization-History'] = newhistories.to_json()
+                # print("History in response:", newhistories)
+                # resp.headers['Set-Authorization-History'] = newhistories
+
+                # Opt 2: Update batch history by iterating them in Wasm.
                 new_history_list_str = insert_batch_history_wasm(wasm_linker, request, ids, session)
                 resp.headers['Set-Authorization-History'] = new_history_list_str
+
+                # Opt 3: Update batsh history with multi-processing in Python.
+
             elif request.method == 'DELETE':
                 for object_id in ids:
                     history_list_hash = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()

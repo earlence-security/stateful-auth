@@ -150,7 +150,7 @@ def measure_latency(base_url, token, reqs):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--token', type=str, default='token')
-    parser.add_argument('--base-url', type=str, default='http://127.0.0.1:5000/api')
+    parser.add_argument('--base-url', type=str, default='http://127.0.0.1:5000')
     # parser.add_argument('--num-requests', type=int, default=300)
     parser.add_argument('--n-iters', type=int, default=30)
     # parser.add_argument('--max-objects', type=int, default=10)

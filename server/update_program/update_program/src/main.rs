@@ -31,30 +31,26 @@ fn main() {
     let parsed_req: Request = read_json(json_str);
     let mut parsed_hist: HistoryMap = read_history(hist_str);
 
-    for (_obj_id, history) in parsed_hist.iter_mut() {
-
+    for history in parsed_hist.values_mut() {
         // find an entry to update (same method and api)
+        let mut found = false;
         for entry in history.iter_mut() {
             if entry.method == parsed_req.method && entry.api == parsed_req.path {
                 entry.counter = entry.counter + 1;
                 entry.timestamp = parsed_req.time;
-                let ret = serde_json::to_string(&parsed_hist).unwrap();
-                print!("{}", ret);
-                return 
+                found = true;
+                break;
             }
         }
-
+        if found {
+            continue;
+        }
         // not found, append a new history
-        let newhist = History {api: parsed_req.path, method: parsed_req.method, counter: 0, timestamp: parsed_req.time};
+        let newhist = History {api: parsed_req.path.clone(), method: parsed_req.method.clone(), counter: 0, timestamp: parsed_req.time};
         history.push(newhist);
-
-        let ret = serde_json::to_string(&parsed_hist).unwrap();
-        print!("hello");
-        // print!("{}", ret);
-        println!("{}", serde_json::to_string(&parsed_hist).unwrap());
-
-        return
     }
+    let ret = serde_json::to_string(&parsed_hist).unwrap();
+    print!("{}", ret);
 }
 
 fn read_json(json_str: &str) -> Request {

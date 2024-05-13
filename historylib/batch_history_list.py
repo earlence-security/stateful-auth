@@ -16,13 +16,12 @@ class BatchHistoryList:
     def __init__(self, historylists=None, json_str=None):
         # A dict of (obj_id, historylist)
         self.entries = {}
-        if historylists != None and len(historylists) > 0:
+        if historylists and len(historylists) > 0:
             if isinstance(historylists[0], HistoryList):
                 for historylist in historylists:
                     self.entries[historylist.obj_id] = historylist
             else:
-                for k, v in historylists.items():
-                    self.entries[k] = HistoryList(k, json.dumps(v))
+                raise ValueError("historylists should be a list of HistoryList objects")
         elif json_str:
             bhl_dict = json.loads(json_str)
             for obj_id, historylist_dict in bhl_dict.items():
