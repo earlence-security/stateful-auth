@@ -79,18 +79,6 @@ def create_client():
         "policy_endpoint": form["policy_endpoint"],
     }
 
-    # TODO: Client should provide update program
-    updateprogram_path = os.path.join(current_app.config['UPDATE_PROGRAM_FOLDER'], current_app.config['UPDATE_PROGRAM_NAME'])
-    print(f"Update program path: {updateprogram_path}")
-    update_module = Module.from_file(authorization.wasm_engine, updateprogram_path)
-    update = UpdateProgram(
-        file_name = current_app.config['UPDATE_PROGRAM_NAME'],
-        client_id = client_id,
-        serialized_module = update_module.serialize(),
-    )
-    db.session.add(update)
-    db.session.commit()
-
     policy_files = []
 
     # get program from endpoint and store in db
@@ -125,6 +113,24 @@ def create_client():
         policy_hash = filename.split('.')[0]
         client_metadata['policy_hashes'].append(policy_hash)
 
+    # Get State Updater Program
+    if 'updater_wasm' in request.files and request.files['updater_wasm'].filename and allowed_file(request.files['updater_wasm'].filename):
+        # Save the WASM file
+        file = request.files['updater_wasm']
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+        print(f"Saved state updater: {filename}")
+        update_module = Module.from_file(authorization.wasm_engine, filepath)
+        update = UpdateProgram(
+            file_name = filename,
+            client_id = client_id,
+            serialized_module = update_module.serialize(),
+        )
+        db.session.add(update)
+        db.session.commit()
+
     for f in policy_files:
         # Compile the wasm files to Modules
         policy_module = Module.from_file(authorization.wasm_engine, f)
@@ -141,10 +147,13 @@ def create_client():
             db.session.add(policy)
             db.session.commit()
 
+    # generate the secrets
     if form['token_endpoint_auth_method'] == 'none':
         client.client_secret = ''
     else:
         client.client_secret = gen_salt(48)
+
+    client.hmac_key = gen_salt(64)
 
     # Set client metadata
     client.set_client_metadata(client_metadata)
