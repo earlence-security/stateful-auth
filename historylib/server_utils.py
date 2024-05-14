@@ -1,24 +1,29 @@
 """Historylib utils for server. Server stores the hash values of objects histories."""
+import os
+import tempfile
 import functools
 import flask
-import uuid
 import time
 import re
 import ujson as json
-import ijson
 import hashlib
+import json
+import multiprocessing
+
+from uuid import UUID
 from flask import Request, Response, g, current_app
 from urllib.parse import urlparse
-import json
-import hashlib
+from wasmtime import Module, Store, WasiConfig
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from concurrent.futures import ProcessPoolExecutor
+
 
 from .history import History
 from .history_list import HistoryList
 from .batch_history_list import BatchHistoryList
 from server.website.models import HistoryListHash, OAuth2Client, UpdateProgram, OAuth2Token
-from wasmtime import Module, Store, WasiConfig
-import os
-import tempfile
+
 
 # In our server database, each object have a history field.
 # history is a json string with form:
@@ -38,38 +43,32 @@ def find_key_value(json_string, target_key):
     else:
         return None
 
-def validate_history(session):
-    """Returns whether a batch of history list in the request header is valid."""
-    request = flask.request
-    # data = request.get_json(silent=True)
-    data = request.get_json(silent=True)
-    token = get_token_from_request(request)
+def validate_historylist(history_list, object_id, token, db_url):
+    """Returns whether a history list in the request header is valid."""
+    db_engine = create_engine(db_url)
+    Session = sessionmaker(bind=db_engine)
+    session = Session()
+    history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=UUID(object_id), access_token=token).first()
+    oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
+    oauth2_client = session.query(OAuth2Client).filter_by(client_id=oauth2_token.client_id).first()
+    session.close()
 
-    # NOTE: We assume here that the object id is the first argument in the url.
-    if list(request.view_args.values()):
-        batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
-        object_id = list(request.view_args.values())[0]
-        return validate_historylist(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, request, session)
-    # NOTE: We assume here batch object id is the ids field of body.
-    elif data != None and 'ids' in data:
-        batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
-        for object_id in data['ids']:
-            object_id = uuid.UUID(object_id)
-            if not validate_historylist(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, request, session):
-                return False
+    hmac_key = oauth2_client.hmac_key
+    if not history_list_hash_row:
+        # TODO: Recover this.
+        # if not history_list.entries:
+        #     return True
+        # else:
+        #     return False
         return True
-    else:
-        # HACK: for latency measurement, we assume the initial history list is valid.
-        return True
-        # return request.headers.get('Authorization-History') == ''
-    
+    return history_list_hash_row.history_list_hash == HistoryList(object_id=object_id, json_str=history_list).to_hmac(hmac_key)
 
-def validate_historylist(history_list, object_id, token, request, session):
+def validate_historylist_old(history_list, object_id, token, session):
     """Returns whether a history list in the request header is valid."""
     # print("validate_historylist", object_id)
     history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
     oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
-    oauth2_client = session.query(OAuth2Client).filter_by(user_id=oauth2_token.user_id).first()
+    oauth2_client = session.query(OAuth2Client).filter_by(client_id=oauth2_token.client_id).first()
     hmac_key = oauth2_client.hmac_key
 
     if not history_list_hash_row:
@@ -80,6 +79,38 @@ def validate_historylist(history_list, object_id, token, request, session):
         #     return False
         return True
     return history_list_hash_row.history_list_hash == history_list.to_hmac(hmac_key)
+
+def validate_history(session):
+    """Returns whether a batch of history list in the request header is valid."""
+    request = flask.request
+    # data = request.get_json(silent=True)
+    data = request.get_json(silent=True)
+    token = get_token_from_request(request)
+    db_url = current_app.config['SQLALCHEMY_DATABASE_URI']
+
+    # NOTE: We assume here that the object id is the first argument in the url.
+    if list(request.view_args.values()):
+        batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
+        object_id = list(request.view_args.values())[0]
+        return validate_historylist(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, db_url)
+    # NOTE: We assume here batch object id is the ids field of body.
+    elif data != None and 'ids' in data:
+        # Opt 1: Sequential
+        # batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
+        # for object_id in data['ids']:
+        #     object_id = UUID(object_id)
+        #     if not validate_historylist_old(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, session):
+        #         return False
+        # return True
+        # Opt 2: Multiprocessing
+        batch_history_list = json.loads(request.headers.get('Authorization-History'))
+        with multiprocessing.Pool() as p:
+            results = p.starmap(validate_historylist, [(batch_history_list[object_id], object_id, token, db_url) for object_id in data['ids']])
+        return all(results)
+    else:
+        # HACK: for latency measurement, we assume the initial history list is valid.
+        return True
+        # return request.headers.get('Authorization-History') == ''
 
 
 # deprecated and not used
@@ -133,9 +164,10 @@ def insert_historylist(request, object_id, session):
 def insert_batch_history_wasm(linker, request, ids, session):
     token = get_token_from_request(request)
     oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
-    # NOTE: This is a bug. Should fix in main branch.
-    # oauth2_client = session.query(OAuth2Client).filter_by(user_id=oauth2_token.user_id).first()
+    # NOTE: Fix in main branch of this location.
     update_program = session.query(UpdateProgram).filter_by(client_id=oauth2_token.client_id).first()
+    oauth2_client = session.query(OAuth2Client).filter_by(client_id=oauth2_token.client_id).first()
+    hmac_key = oauth2_client.hmac_key
 
     history_list_str = request.headers.get('Authorization-History')
     # print("History in request:", history_list_str)
@@ -146,8 +178,17 @@ def insert_batch_history_wasm(linker, request, ids, session):
     #         history_list.update({str(id): {}})
     new_history_list_str = run_update_program(linker, update_program, build_request_JSON(request), history_list_str)
     # print("History in response:", new_history_list_str)
+    new_history_list = json.loads(new_history_list_str)
+    rows = [
+        HistoryListHash(
+            object_id=object_id,
+            access_token=token,
+            history_list_hash=HistoryList(obj_id=object_id, json_str=new_history_list[str(object_id)]).to_hmac(hmac_key),
+        ) for object_id in ids
+    ]
+    session.bulk_save_objects(rows)
+    session.commit()
     return new_history_list_str
-
 
 
 def insert_historylist_wasm_old(linker, request, object_id, session):
@@ -181,13 +222,11 @@ def insert_historylist_wasm_old(linker, request, object_id, session):
         # newhist_list = HistoryList(json_str=newhist_string)
         batch_history_list = json.loads(request.headers.get('Authorization-History'))
         history_list = {str(object_id): batch_history_list[str(object_id)]}
-        # print(history_list)
-        history_list_hash = hashlib.sha256(json.dumps(history_list).encode()).hexdigest()
 
         history_list_hash_row = HistoryListHash(
             object_id=object_id,
             access_token=token,
-            history_list_hash=newhist_list.to_hmac(hmac_key),
+            history_list_hash=history_list.to_hmac(hmac_key),
         )
         session.add(history_list_hash_row)
         session.commit()

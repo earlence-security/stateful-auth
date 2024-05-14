@@ -22,7 +22,7 @@ class HistoryList:
         # list of History objects
         self.entries: list[History] = []
         if json_str:
-            history_list = json.loads(json_str)
+            history_list = json.loads(json_str) if isinstance(json_str, str) else json_str
             if isinstance(history_list, list):
                 for hist in history_list:
                     self.entries.append(History.from_dict(hist))

@@ -12,7 +12,7 @@ from authlib.oauth2.stateful.validator_helper import (
 )
 from wasmtime import Config, Engine, Linker, Module
 from historylib.batch_history_list import BatchHistoryList
-from historylib.server_utils import validate_history
+
 
 def create_query_client_func(session, client_model):
     """Create an ``query_client`` function that can be used in authorization
@@ -141,6 +141,7 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                     raise InvalidHistoryError()
             else:
                 # Check for history integrity
+                from historylib.server_utils import validate_history
                 if not validate_history(session):
                     print("!!!!!!!!!!!!!!! invalid history !!!!!!!!!!!!!!!!!!")
                     raise InvalidHistoryError()
