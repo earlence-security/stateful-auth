@@ -9,21 +9,21 @@ import ujson as json
 import hashlib
 import json
 import multiprocessing
+import concurrent.futures
 
 from uuid import UUID
 from flask import Request, Response, g, current_app
 from urllib.parse import urlparse
 from wasmtime import Module, Store, WasiConfig
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from concurrent.futures import ProcessPoolExecutor
+from sqlalchemy.orm import sessionmaker, scoped_session
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 
 from .history import History
 from .history_list import HistoryList
 from .batch_history_list import BatchHistoryList
-from server.website.models import HistoryListHash, OAuth2Client, UpdateProgram, OAuth2Token
-
+from server.website.models import HistoryListHash, OAuth2Client, UpdateProgram, OAuth2Token, db
 
 # In our server database, each object have a history field.
 # history is a json string with form:
@@ -43,7 +43,7 @@ def find_key_value(json_string, target_key):
     else:
         return None
 
-def validate_historylist(history_list, object_id, token, db_url):
+def validate_historylist_multiprocessing(history_list, object_id, token, db_url):
     """Returns whether a history list in the request header is valid."""
     db_engine = create_engine(db_url)
     Session = sessionmaker(bind=db_engine)
@@ -63,22 +63,20 @@ def validate_historylist(history_list, object_id, token, db_url):
         return True
     return history_list_hash_row.history_list_hash == HistoryList(object_id=object_id, json_str=history_list).to_hmac(hmac_key)
 
-def validate_historylist_old(history_list, object_id, token, session):
+def validate_historylist(history_list, object_id, token, session, app, hmac_key):
     """Returns whether a history list in the request header is valid."""
     # print("validate_historylist", object_id)
-    history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=object_id, access_token=token).first()
-    oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
-    oauth2_client = session.query(OAuth2Client).filter_by(client_id=oauth2_token.client_id).first()
-    hmac_key = oauth2_client.hmac_key
+    with app.app_context():
+        history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=UUID(object_id), access_token=token).first()
 
-    if not history_list_hash_row:
-        # TODO: Recover this.
-        # if not history_list.entries:
-        #     return True
-        # else:
-        #     return False
-        return True
-    return history_list_hash_row.history_list_hash == history_list.to_hmac(hmac_key)
+        if not history_list_hash_row:
+            # TODO: Recover this.
+            # if not history_list.entries:
+            #     return True
+            # else:
+            #     return False
+            return True
+        return history_list_hash_row.history_list_hash == history_list.to_hmac(hmac_key)
 
 def validate_history(session):
     """Returns whether a batch of history list in the request header is valid."""
@@ -92,21 +90,42 @@ def validate_history(session):
     if list(request.view_args.values()):
         batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
         object_id = list(request.view_args.values())[0]
-        return validate_historylist(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, db_url)
+        return validate_historylist(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, session)
     # NOTE: We assume here batch object id is the ids field of body.
     elif data != None and 'ids' in data:
+        oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
+        oauth2_client = session.query(OAuth2Client).filter_by(client_id=oauth2_token.client_id).first()
+        hmac_key = oauth2_client.hmac_key
+
         # Opt 1: Sequential
         # batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
         # for object_id in data['ids']:
-        #     object_id = UUID(object_id)
-        #     if not validate_historylist_old(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, session):
+        #     if not validate_historylist(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, session, current_app, hmac_key):
         #         return False
         # return True
+
         # Opt 2: Multiprocessing
+        # batch_history_list = json.loads(request.headers.get('Authorization-History'))
+        # with multiprocessing.Pool() as p:
+        #     results = p.starmap(validate_historylist_multiprocessing, [(batch_history_list[object_id], object_id, token, db_url) for object_id in data['ids']])
+        # return all(results)
+
+        # Opt 3: Multithreading
         batch_history_list = json.loads(request.headers.get('Authorization-History'))
-        with multiprocessing.Pool() as p:
-            results = p.starmap(validate_historylist, [(batch_history_list[object_id], object_id, token, db_url) for object_id in data['ids']])
-        return all(results)
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            app = current_app._get_current_object()
+            futures = {executor.submit(validate_historylist, batch_history_list[object_id], object_id, token, session, app, hmac_key): object_id for object_id in data['ids']}
+            for future in concurrent.futures.as_completed(futures):
+                object_id = futures[future]
+                try:
+                    result = future.result()
+                except Exception as e:
+                    print(e)
+                    return False
+                if not result:
+                    return False
+                # print(object_id, result)
+            return True
     else:
         # HACK: for latency measurement, we assume the initial history list is valid.
         return True
