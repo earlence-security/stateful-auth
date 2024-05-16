@@ -6,3 +6,4 @@ wasmtime
 pycryptodome
 cryptography
 pymacaroons
+psutil

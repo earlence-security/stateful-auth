@@ -1,0 +1,1 @@
+When POST to "send-money" need to amount < 100 && recipient = Leo && currency = USD
