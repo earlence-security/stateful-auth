@@ -13,6 +13,7 @@ from authlib.oauth2.stateful.validator_helper import (
 from wasmtime import Config, Engine, Linker, Module
 from historylib.batch_history_list import BatchHistoryList
 from historylib.server_utils import validate_history
+from historylib.macaroon_utils import *
 
 def create_query_client_func(session, client_model):
     """Create an ``query_client`` function that can be used in authorization
@@ -113,15 +114,23 @@ def create_bearer_token_validator(session, token_model):
 
     return _BearerTokenValidator
 
-def create_bearer_token_validator_stateful(wasm_linker, session, token_model, client_model, policy_model, is_proxy=False):
+def create_bearer_token_validator_stateful(wasm_linker, session, token_model, client_model, policy_model, macaroon_model, is_proxy=False, is_macaroon=False):
 
     from authlib.oauth2.stateful import BearerTokenValidatorStateful
 
     class _BearerTokenValidatorStateful(BearerTokenValidatorStateful):
 
         def authenticate_token(self, token_string):
-            q = session.query(token_model)
-            return q.filter_by(access_token=token_string).first()
+            if is_macaroon:
+                if verify_macaroon(session, macaroon_model, token_string):
+                    # still need to query db for later expiration check
+                    q = session.query(token_model)
+                    return q.filter_by(access_token=token_string).first()
+                else:
+                    raise Exception("macaroon does not verify") 
+            else:
+                q = session.query(token_model)
+                return q.filter_by(access_token=token_string).first()
         
         # extra stateful checks 
         def validate_token_stateful(self, token, scopes, request,):
@@ -139,6 +148,9 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 #if not validate_object_ids_proxy(session):
                     #print("!!!!!!!!!!!!!!! invalid object_id !!!!!!!!!!!!!!!!!!")
                     # raise InvalidHistoryError()
+            elif is_macaroon:
+                # macaroon don't need to validate history
+                pass
             else:
                 # Check for history integrity
                 if not validate_history(session):
@@ -150,16 +162,21 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 and hasattr(g, 'current_log'):
                 history_validation_time = time.time() - history_validation_start
 
-            # get module from some db
-            policy_q = session.query(policy_model)
-            policy = policy_q.filter_by(policy_hash=token.policy).first()
-            policy_module = Module.deserialize(wasm_linker.engine, policy.serialized_module)
+            if not is_macaroon:
+                # get module from some db
+                policy_q = session.query(policy_model)
+                policy = policy_q.filter_by(policy_hash=token.policy).first()
+                policy_module = Module.deserialize(wasm_linker.engine, policy.serialized_module)
 
             request_JSON, request_size = build_request_JSON(request)
+            history_list_str = ''
             if is_proxy:
                 # Get history list from server-side DB (only for proxy)
                 from historylib.proxy_utils import get_history_list_str_proxy
                 history_list_str = get_history_list_str_proxy(session)
+            elif is_macaroon:
+                # macaroon don't need to get history
+                pass
             else:
                 # Get history list from request header
                 history_list_str = request.headers.get('Authorization-History')
@@ -175,10 +192,15 @@ def create_bearer_token_validator_stateful(wasm_linker, session, token_model, cl
                 # result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list.to_json())
                 # print("request input to policy program is: ", request_JSON)
                 # print("history input to policy program is: ", history_list_str)
-                result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list_str)
+                if is_macaroon:
+                    # run macaroon policy
+                    result = verify_policy(request, token.access_token)
+                else:
+                    result = run_policy(wasm_linker, policy_module, policy.policy_hash, request_JSON, history_list_str)
             except Exception as e:
                 print("policy execution error:", e)
                 raise PolicyCrashedError()
+            
             
             # LOGGING
             if 'ENABLE_LOGGING' in current_app.config and current_app.config['ENABLE_LOGGING'] \

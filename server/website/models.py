@@ -86,6 +86,12 @@ class UpdateProgram(db.Model):
     client = db.relationship('OAuth2Client')
     serialized_module = db.Column(db.LargeBinary)
 
+
+class MacaroonModel(db.Model):
+    identifier = db.Column(db.String(255), primary_key=True)
+    root_key = db.Column(db.String(255), unique=True)
+
+
 ######################
 #
 # Resources

@@ -117,7 +117,8 @@ class AuthorizationServerStateful(_AuthorizationServerStateful):
                 'urn:ietf:params:oauth:grant-type:jwt-bearer': 3600,
             }
         """
-        conf = config.get('OAUTH2_ACCESS_TOKEN_GENERATOR', True)
+        
+        conf = config.get('OAUTH2_ACCESS_TOKEN_GENERATOR', 'server.website.oauth2.our_token_generator')
         access_token_generator = create_token_generator(conf, 42)
 
         conf = config.get('OAUTH2_REFRESH_TOKEN_GENERATOR', False)

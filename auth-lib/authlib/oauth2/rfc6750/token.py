@@ -53,7 +53,7 @@ class BearerTokenGenerator(object):
         return scope
 
     def generate(self, grant_type, client, user=None, scope=None,
-                 expires_in=None, include_refresh_token=True, policy=None):
+                 expires_in=None, include_refresh_token=True, policy=None, session=None):
         """Generate a bearer token for OAuth 2.0 authorization token endpoint.
 
         :param client: the client that making the request.
@@ -69,7 +69,7 @@ class BearerTokenGenerator(object):
         """
         scope = self.get_allowed_scope(client, scope)
         access_token = self.access_token_generator(
-            client=client, grant_type=grant_type, user=user, scope=scope)
+            client=client, grant_type=grant_type, user=user, scope=scope, session=session)
         if expires_in is None:
             expires_in = self._get_expires_in(client, grant_type)
 
@@ -90,5 +90,5 @@ class BearerTokenGenerator(object):
         return token
 
     def __call__(self, grant_type, client, user=None, scope=None,
-                 expires_in=None, include_refresh_token=True, policy=None):
-        return self.generate(grant_type, client, user, scope, expires_in, include_refresh_token, policy)
+                 expires_in=None, include_refresh_token=True, policy=None, session=None):
+        return self.generate(grant_type, client, user, scope, expires_in, include_refresh_token, policy, session)

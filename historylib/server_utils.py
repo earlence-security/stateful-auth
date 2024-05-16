@@ -16,6 +16,7 @@ from wasmtime import Module, Store, WasiConfig
 import os
 import tempfile
 
+
 # In our server database, each object have a history field.
 # history is a json string with form:
 # {

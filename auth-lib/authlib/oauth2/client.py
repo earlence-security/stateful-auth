@@ -334,7 +334,6 @@ class OAuth2Client(object):
     def parse_response_token(self, resp):
         if resp.status_code >= 500:
             resp.raise_for_status()
-
         token = resp.json()
         if 'error' in token:
             raise self.oauth_error_class(
