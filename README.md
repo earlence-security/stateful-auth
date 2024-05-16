@@ -73,3 +73,7 @@ For example, if we want to access `/api/me`.
 ```
 curl -H "Authorization: Bearer ${access_token}" http://127.0.0.1:5000/api/me
 ```
+
+For comparing performance with Macaroons, set ``'MACAROON': True,``
+in ``server/app.py`` and ``client/config.py``
+
