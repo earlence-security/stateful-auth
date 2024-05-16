@@ -65,19 +65,32 @@ def validate_historylist_multiprocessing(history_list, object_id, token, db_url)
         return True
     return history_list_hash_row.history_list_hash == HistoryList(object_id=object_id, json_str=history_list).to_hmac(hmac_key)
 
+
 def validate_historylist(history_list, object_id, token, session, app, hmac_key):
     """Returns whether a history list in the request header is valid."""
-    # print("validate_historylist", object_id)
-    with app.app_context():
-        history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=UUID(object_id), access_token=token).first()
-        if not history_list_hash_row:
-            # TODO: Recover this.
-            # if not history_list.entries:
-            #     return True
-            # else:
-            #     return False
-            return True
-        return history_list_hash_row.history_list_hash == history_list.to_hmac(hmac_key)
+    # with app.app_context():
+    history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=UUID(object_id), access_token=token).first()
+    if not history_list_hash_row:
+        # TODO: Recover this.
+        # if not history_list.entries:
+        #     return True
+        # else:
+        #     return False
+        return True
+    return history_list_hash_row.history_list_hash == history_list.to_hmac(hmac_key)
+
+
+def validate_historylist_simple(history_list, row, hmac_key):
+    """Returns whether a history list in the request header is valid."""
+    if not row:
+        # TODO: Recover this.
+        # if not history_list.entries:
+        #     return True
+        # else:
+        #     return False
+        return True
+    return row.history_list_hash == history_list.to_hmac(hmac_key)
+
 
 def validate_history(session):
     """Returns whether a batch of history list in the request header is valid."""
@@ -95,31 +108,38 @@ def validate_history(session):
     # NOTE: We assume here batch object id is the ids field of body.
     elif data != None and 'ids' in data:
         oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
-        oauth2_client = session.query(OAuth2Client).filter_by(client_id=oauth2_token.client_id).first()
+        oauth2_client = session.query(OAuth2Client).filter_by(client_id=oauth2_token.client_id).first()        
         hmac_key = oauth2_client.hmac_key
 
         # Opt 1: Sequential
         # batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
-        # start = time.time()
         # for object_id in data['ids']:
         #     if not validate_historylist(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, session, current_app, hmac_key):
         #         return False
-        # print("Validate history:", time.time() - start)
         # return True
+    
+        # Opt 2: Fetch all the state hmacs for this token
+        batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
+        hamcs = session.query(HistoryListHash).filter_by(access_token=token).all()
+        hmacs = {h.object_id: h.history_list_hash for h in hamcs}
+        for object_id in data['ids']:
+            if not validate_historylist_simple(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), hmacs.get(object_id), hmac_key):
+                return False
+        return True
 
-        # Opt 2: Multiprocessing - 1
+        # Opt 3: Multiprocessing - 1
         # batch_history_list = json.loads(request.headers.get('Authorization-History'))
         # with multiprocessing.Pool(2) as p:
         #     results = p.starmap(validate_historylist_multiprocessing, [(batch_history_list[object_id], object_id, token, db_url) for object_id in data['ids']])
         # return all(results)
 
-        # Opt 3: Multiprocessing - 2
-        batch_history_list = json.loads(request.headers.get('Authorization-History'))
-        with ProcessPoolExecutor(max_workers=4) as executor:
-            results = executor.map(validate_historylist_multiprocessing, batch_history_list.values(), data['ids'], repeat(token), repeat(db_url))
-        return all(results)
+        # Opt 4: Multiprocessing - 2
+        # batch_history_list = json.loads(request.headers.get('Authorization-History'))
+        # with ProcessPoolExecutor(max_workers=4) as executor:
+        #     results = executor.map(validate_historylist_multiprocessing, batch_history_list.values(), data['ids'], repeat(token), repeat(db_url))
+        # return all(results)
         
-        # Opt 4: Multithreading
+        # Opt 5: Multithreading
         # batch_history_list = json.loads(request.headers.get('Authorization-History'))
         # batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
         # with ThreadPoolExecutor(max_workers=1) as executor:
