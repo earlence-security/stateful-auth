@@ -10,6 +10,7 @@ import hashlib
 import json
 import multiprocessing
 import concurrent.futures
+import hmac
 
 from uuid import UUID
 from flask import Request, Response, g, current_app
@@ -18,6 +19,7 @@ from wasmtime import Module, Store, WasiConfig
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from itertools import repeat
 
 
 from .history import History
@@ -68,7 +70,6 @@ def validate_historylist(history_list, object_id, token, session, app, hmac_key)
     # print("validate_historylist", object_id)
     with app.app_context():
         history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=UUID(object_id), access_token=token).first()
-
         if not history_list_hash_row:
             # TODO: Recover this.
             # if not history_list.entries:
@@ -99,33 +100,43 @@ def validate_history(session):
 
         # Opt 1: Sequential
         # batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
+        # start = time.time()
         # for object_id in data['ids']:
         #     if not validate_historylist(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, session, current_app, hmac_key):
         #         return False
+        # print("Validate history:", time.time() - start)
         # return True
 
-        # Opt 2: Multiprocessing
+        # Opt 2: Multiprocessing - 1
         # batch_history_list = json.loads(request.headers.get('Authorization-History'))
-        # with multiprocessing.Pool() as p:
+        # with multiprocessing.Pool(2) as p:
         #     results = p.starmap(validate_historylist_multiprocessing, [(batch_history_list[object_id], object_id, token, db_url) for object_id in data['ids']])
         # return all(results)
 
-        # Opt 3: Multithreading
+        # Opt 3: Multiprocessing - 2
         batch_history_list = json.loads(request.headers.get('Authorization-History'))
-        with ThreadPoolExecutor(max_workers=8) as executor:
-            app = current_app._get_current_object()
-            futures = {executor.submit(validate_historylist, batch_history_list[object_id], object_id, token, session, app, hmac_key): object_id for object_id in data['ids']}
-            for future in concurrent.futures.as_completed(futures):
-                object_id = futures[future]
-                try:
-                    result = future.result()
-                except Exception as e:
-                    print(e)
-                    return False
-                if not result:
-                    return False
-                # print(object_id, result)
-            return True
+        with ProcessPoolExecutor(max_workers=4) as executor:
+            results = executor.map(validate_historylist_multiprocessing, batch_history_list.values(), data['ids'], repeat(token), repeat(db_url))
+        return all(results)
+        
+        # Opt 4: Multithreading
+        # batch_history_list = json.loads(request.headers.get('Authorization-History'))
+        # batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
+        # with ThreadPoolExecutor(max_workers=1) as executor:
+        #     app = current_app._get_current_object()
+        #     # futures = {executor.submit(validate_historylist, batch_history_list[object_id], object_id, token, session, app, hmac_key): object_id for object_id in data['ids']}
+        #     futures = {executor.submit(validate_historylist, batch_history_list.entries.get(object_id), object_id, token, session, app, hmac_key): object_id for object_id in data['ids']}
+        #     for future in concurrent.futures.as_completed(futures):
+        #         object_id = futures[future]
+        #         try:
+        #             result = future.result()
+        #         except Exception as e:
+        #             print(e)
+        #             return False
+        #         if not result:
+        #             return False
+        #         # print(object_id, result)
+        #     return True
     else:
         # HACK: for latency measurement, we assume the initial history list is valid.
         return True
@@ -180,6 +191,12 @@ def insert_historylist(request, object_id, session):
     return {str(object_id): history_list}
 
 
+def to_hmac(object_id, history_list_str, key):
+    history_list = HistoryList(obj_id=object_id, json_str=history_list_str)
+    result = hmac.new(key.encode(), history_list.to_json().encode(), hashlib.sha256).hexdigest()
+    return result
+
+
 def insert_batch_history_wasm(linker, request, ids, session):
     token = get_token_from_request(request)
     oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
@@ -195,9 +212,27 @@ def insert_batch_history_wasm(linker, request, ids, session):
     # for id in ids:
     #     if str(id) not in history_list:
     #         history_list.update({str(id): {}})
-    new_history_list_str = run_update_program(linker, update_program, build_request_JSON(request), history_list_str)
+    # start = time.time()
+    new_batch_history_list_str = run_update_program(linker, update_program, build_request_JSON(request), history_list_str)
+    # print("Wasm execution time:", time.time() - start)
     # print("History in response:", new_history_list_str)
-    new_history_list = json.loads(new_history_list_str)
+    # start = time.time()
+    new_history_list = json.loads(new_batch_history_list_str)
+    rows = []
+    # with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    #     futures = {executor.submit(to_hmac, object_id, new_history_list_str, hmac_key): object_id for object_id, new_history_list_str in new_history_list.items()}
+    #     for future in concurrent.futures.as_completed(futures):
+    #         object_id = futures[future]
+    #         try:
+    #             result = future.result()
+    #         except Exception as e:
+    #             print(e)
+    #             raise e
+    #         rows.append(HistoryListHash(
+    #             object_id=UUID(object_id),
+    #             access_token=token,
+    #             history_list_hash=result
+    #         ))
     rows = [
         HistoryListHash(
             object_id=object_id,
@@ -207,7 +242,8 @@ def insert_batch_history_wasm(linker, request, ids, session):
     ]
     session.bulk_save_objects(rows)
     session.commit()
-    return new_history_list_str
+    # print("DB commit time:", time.time() - start)
+    return new_batch_history_list_str
 
 
 def insert_historylist_wasm_old(linker, request, object_id, session):
