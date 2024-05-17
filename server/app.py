@@ -22,4 +22,5 @@ app = create_app({
     'UPDATE_PROGRAM_FOLDER': os.path.join(cwd, 'update_program'),
     'UPDATE_PROGRAM_NAME': 'update_program.wasm',
     'ENABLE_LOGGING': True,
+    'INTEGRITY_CHECK': 'hash',
 })

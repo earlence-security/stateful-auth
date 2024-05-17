@@ -70,6 +70,7 @@ def validate_historylist(history_list, object_id, token, session, app, hmac_key)
     """Returns whether a history list in the request header is valid."""
     # with app.app_context():
     history_list_hash_row = session.query(HistoryListHash).filter_by(object_id=UUID(object_id), access_token=token).first()
+    value = history_list.to_hmac(hmac_key) if current_app.config['INTEGRITY_CHECK'] == 'hmac' else history_list.to_hash()
     if not history_list_hash_row:
         # TODO: Recover this.
         # if not history_list.entries:
@@ -77,11 +78,13 @@ def validate_historylist(history_list, object_id, token, session, app, hmac_key)
         # else:
         #     return False
         return True
-    return history_list_hash_row.history_list_hash == history_list.to_hmac(hmac_key)
+    return history_list_hash_row.history_list_hash == value
 
 
 def validate_historylist_simple(history_list, row, hmac_key):
     """Returns whether a history list in the request header is valid."""
+    # value = history_list.to_hash()
+    value = history_list.to_hmac(hmac_key)
     if not row:
         # TODO: Recover this.
         # if not history_list.entries:
@@ -89,7 +92,7 @@ def validate_historylist_simple(history_list, row, hmac_key):
         # else:
         #     return False
         return True
-    return row.history_list_hash == history_list.to_hmac(hmac_key)
+    return row.history_list_hash == value
 
 
 def validate_history(session):
@@ -107,25 +110,27 @@ def validate_history(session):
         return validate_historylist(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, session)
     # NOTE: We assume here batch object id is the ids field of body.
     elif data != None and 'ids' in data:
-        oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
-        oauth2_client = session.query(OAuth2Client).filter_by(client_id=oauth2_token.client_id).first()        
-        hmac_key = oauth2_client.hmac_key
+        hmac_key = None
+        if current_app.config['INTEGRITY_CHECK'] == 'hmac':
+            oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
+            oauth2_client = session.query(OAuth2Client).filter_by(client_id=oauth2_token.client_id).first()        
+            hmac_key = oauth2_client.hmac_key
 
         # Opt 1: Sequential
-        # batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
-        # for object_id in data['ids']:
-        #     if not validate_historylist(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, session, current_app, hmac_key):
-        #         return False
-        # return True
-    
-        # Opt 2: Fetch all the state hmacs for this token
         batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
-        hamcs = session.query(HistoryListHash).filter_by(access_token=token).all()
-        hmacs = {h.object_id: h.history_list_hash for h in hamcs}
         for object_id in data['ids']:
-            if not validate_historylist_simple(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), hmacs.get(object_id), hmac_key):
+            if not validate_historylist(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), object_id, token, session, current_app, hmac_key):
                 return False
         return True
+    
+        # Opt 2: Fetch all the state hmacs for this token
+        # batch_history_list = BatchHistoryList(json_str=request.headers.get('Authorization-History'))
+        # hamcs = session.query(HistoryListHash).filter_by(access_token=token).all()
+        # hmacs = {h.object_id: h.history_list_hash for h in hamcs}
+        # for object_id in data['ids']:
+        #     if not validate_historylist_simple(batch_history_list.entries.get(str(object_id), HistoryList(object_id)), hmacs.get(object_id), hmac_key):
+        #         return False
+        # return True
 
         # Opt 3: Multiprocessing - 1
         # batch_history_list = json.loads(request.headers.get('Authorization-History'))
@@ -220,10 +225,12 @@ def to_hmac(object_id, history_list_str, key):
 def insert_batch_history_wasm(linker, request, ids, session):
     token = get_token_from_request(request)
     oauth2_token = session.query(OAuth2Token).filter_by(access_token=token).first()
-    # NOTE: Fix in main branch of this location.
     update_program = session.query(UpdateProgram).filter_by(client_id=oauth2_token.client_id).first()
-    oauth2_client = session.query(OAuth2Client).filter_by(client_id=oauth2_token.client_id).first()
-    hmac_key = oauth2_client.hmac_key
+    # NOTE: Fix in main branch of this location.
+    hmac_key = None
+    if current_app.config['INTEGRITY_CHECK'] == 'hmac':
+        oauth2_client = session.query(OAuth2Client).filter_by(client_id=oauth2_token.client_id).first()
+        hmac_key = oauth2_client.hmac_key
 
     history_list_str = request.headers.get('Authorization-History')
     # print("History in request:", history_list_str)
@@ -257,7 +264,11 @@ def insert_batch_history_wasm(linker, request, ids, session):
         HistoryListHash(
             object_id=object_id,
             access_token=token,
-            history_list_hash=HistoryList(obj_id=object_id, json_str=new_history_list[str(object_id)]).to_hmac(hmac_key),
+            history_list_hash=(
+                HistoryList(obj_id=object_id, json_str=new_history_list[str(object_id)]).to_hmac(hmac_key) \
+                if current_app.config['INTEGRITY_CHECK'] == 'hmac' \
+                else HistoryList(obj_id=object_id, json_str=new_history_list[str(object_id)]).to_hash()
+            ),
         ) for object_id in ids
     ]
     session.bulk_save_objects(rows)
