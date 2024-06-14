@@ -84,7 +84,7 @@ def validate_historylist(history_list, object_id, token, session, app, hmac_key)
 def validate_historylist_simple(history_list, row, hmac_key):
     """Returns whether a history list in the request header is valid."""
     # value = history_list.to_hash()
-    value = history_list.to_hmac(hmac_key)
+    value = history_list.to_hmac(hmac_key) if current_app.config['INTEGRITY_CHECK'] == 'hmac' else history_list.to_hash()
     if not row:
         # TODO: Recover this.
         # if not history_list.entries:
