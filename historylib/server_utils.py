@@ -27,6 +27,7 @@ from .history_list import HistoryList
 from .batch_history_list import BatchHistoryList
 from server.website.models import HistoryListHash, OAuth2Client, UpdateProgram, OAuth2Token, db
 
+
 # In our server database, each object have a history field.
 # history is a json string with form:
 # {

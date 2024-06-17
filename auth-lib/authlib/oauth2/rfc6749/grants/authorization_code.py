@@ -235,7 +235,7 @@ class AuthorizationCodeGrant(BaseGrant, AuthorizationEndpointMixin, TokenEndpoin
         self.request.authorization_code = authorization_code
         self.execute_hook('after_validate_token_request')
 
-    def create_token_response(self):
+    def create_token_response(self, session=None):
         """If the access token request is valid and authorized, the
         authorization server issues an access token and optional refresh
         token as described in Section 5.1.  If the request client
@@ -279,7 +279,8 @@ class AuthorizationCodeGrant(BaseGrant, AuthorizationEndpointMixin, TokenEndpoin
             user=user,
             scope=scope,
             include_refresh_token=client.check_grant_type('refresh_token'),
-            policy=policy
+            policy=policy,
+            session=session,
         )
         log.debug('Issue token %r to %r', token, client)
 

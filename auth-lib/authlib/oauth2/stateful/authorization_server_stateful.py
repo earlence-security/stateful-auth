@@ -37,7 +37,7 @@ class AuthorizationServerStateful(object):
         raise NotImplementedError()
 
     def generate_token(self, grant_type, client, user=None, scope=None,
-                       expires_in=None, include_refresh_token=True, policy=None):
+                       expires_in=None, include_refresh_token=True, policy=None, session=None):
         """Generate the token dict.
 
         :param grant_type: current requested grant_type.
@@ -58,7 +58,7 @@ class AuthorizationServerStateful(object):
         
         return func(
             grant_type=grant_type, client=client, user=user, scope=scope,
-            expires_in=expires_in, include_refresh_token=include_refresh_token, policy=policy)
+            expires_in=expires_in, include_refresh_token=include_refresh_token, policy=policy, session=session)
 
     def register_token_generator(self, grant_type, func):
         """Register a function as token generator for the given ``grant_type``.
@@ -263,7 +263,7 @@ class AuthorizationServerStateful(object):
         except OAuth2Error as error:
             return self.handle_error_response(request, error)
 
-    def create_token_response(self, request=None):
+    def create_token_response(self, session=None, request=None):
         """Validate token request and create token response.
 
         :param request: HTTP request instance
@@ -276,7 +276,7 @@ class AuthorizationServerStateful(object):
 
         try:
             grant.validate_token_request()
-            args = grant.create_token_response()
+            args = grant.create_token_response(session=session)
             return self.handle_response(*args)
         except OAuth2Error as error:
             return self.handle_error_response(request, error)

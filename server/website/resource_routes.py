@@ -79,14 +79,16 @@ def api_me2():
 @require_oauth_stateful()
 def send_money():
     data = flask.request.get_json()
-    if 'recipient' in data and 'amount' in data:
+    if 'recipient' in data and 'amount' in data and 'currency' in data:
         recipient = data['recipient']
         amount = data['amount']
+        currency = data['currency'],
         # Transfer the money
         result = {
             'message': f'Successfully sent ${amount} to {recipient}',
             'recipient': recipient,
-            'amount': amount
+            'amount': amount,
+            'currency': currency,
         }
         return jsonify(result), 200
     else:

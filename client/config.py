@@ -13,3 +13,4 @@ CLIENT_KWARGS = {
     'policy_hashes': read_policy_hashes()
 }
 HISTORY_DIRECTORY = os.path.join(os.getcwd(), "history")
+MACAROON = False

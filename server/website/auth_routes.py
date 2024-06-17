@@ -187,8 +187,10 @@ def authorize():
         client = OAuth2Client.query.filter_by(client_id=client_id).first()
         if not client:
             return redirect('/')
-        if policy not in client.client_metadata.get("policy_hashes"):
-            return UnregisteredPolicyError().error, 403
+        # skip policy check if macaroon
+        if policy != "macaroon":
+            if policy not in client.client_metadata.get("policy_hashes"):
+                return UnregisteredPolicyError().error, 403
 
         try:
             grant = authorization.get_consent_grant(end_user=user)
@@ -210,7 +212,8 @@ def issue_token():
     # NOTE: `token` is generated in AuthorizationCodeGrant.create_token_response.
     # See https://github.com/lepture/authlib/blob/master/authlib/oauth2/rfc6749/grants/authorization_code.py#L238C30-L238C30.
     # token generates in auth-lib\authlib\oauth2\rfc6749\grants\authorization_code.py
-    return authorization.create_token_response()
+    # macaroon keys needs to be stored in db
+    return authorization.create_token_response(session=db.session)
 
 
 @auth_bp.route('/oauth/revoke', methods=['POST'])

@@ -14,9 +14,11 @@ from authlib.integrations.sqla_oauth2 import (
 from authlib.oauth2.rfc6749 import grants
 from authlib.oauth2.rfc7636 import CodeChallenge
 from .models import db, User
-from .models import OAuth2Client, OAuth2AuthorizationCode, OAuth2Token, Policy
+from .models import OAuth2Client, OAuth2AuthorizationCode, OAuth2Token, Policy, MacaroonModel
 from wasmtime import Config, Engine, Linker
-
+from historylib.macaroon_utils import *
+from authlib.common.security import generate_token
+from flask import current_app
 
 class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
     TOKEN_ENDPOINT_AUTH_METHODS = [
@@ -117,7 +119,18 @@ def config_oauth(app):
     bearer_cls = create_bearer_token_validator(db.session, OAuth2Token)
     require_oauth.register_token_validator(bearer_cls())
 
+    # see if macaroon test
+    is_macaroon = 'MACAROON' in app.config and app.config['MACAROON']
+
     # protect resource stateful
     # our stateful validator
-    bearer_cls_stateful = create_bearer_token_validator_stateful(authorization.wasm_linker, db.session, OAuth2Token, OAuth2Client, Policy)
+    bearer_cls_stateful = create_bearer_token_validator_stateful(authorization.wasm_linker, db.session, OAuth2Token, OAuth2Client, Policy, MacaroonModel, is_macaroon=is_macaroon)
     require_oauth_stateful.register_token_validator(bearer_cls_stateful())
+
+
+def our_token_generator(*args, **kwargs):
+    is_macaroon = 'MACAROON' in current_app.config and current_app.config['MACAROON']
+    if is_macaroon:
+        return generate_macaroon(kwargs['session'], MacaroonModel)
+    else:
+        return generate_token(42)

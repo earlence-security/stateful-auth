@@ -6,8 +6,10 @@ parent_dir = os.path.abspath(os.path.dirname(__file__))
 parent_dir = os.path.abspath(os.path.join(parent_dir, os.pardir))
 auth_lib_dir = os.path.join(parent_dir, 'auth-lib')
 history_lib_dir = os.path.join(parent_dir, 'historylib')
+server_dir = os.path.join(parent_dir, 'server')
 sys.path.append(auth_lib_dir)
 sys.path.append(parent_dir)
+sys.path.append(server_dir)
 
 from website.app import create_app
 
@@ -23,4 +25,5 @@ app = create_app({
     'UPDATE_PROGRAM_NAME': 'update_program.wasm',
     'ENABLE_LOGGING': True,
     'INTEGRITY_CHECK': 'hmac',
+    'MACAROON': False,
 })

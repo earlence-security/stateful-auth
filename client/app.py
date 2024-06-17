@@ -37,6 +37,7 @@ oauth.register(
 
 policy_dict = build_policy_decription_dict()
 history_path = app.config['HISTORY_DIRECTORY']
+is_macaroon = app.config['MACAROON']
 if not os.path.exists(history_path):
    os.makedirs(history_path)
 
@@ -94,11 +95,16 @@ def make_request():
         target_api = selected_api
         if not input_api_append == "":
             target_api = os.path.join(selected_api, input_api_append)
-        
+
         headers = {
             'Authorization': f'Bearer {token["access_token"]}',
-            'Authorization-History': '',
         }
+        
+        if not is_macaroon:
+            headers = {
+                'Authorization': f'Bearer {token["access_token"]}',
+                'Authorization-History': '',
+            }
 
         objs_to_be_accessed=[]
         # get history attached with this obj
@@ -143,12 +149,13 @@ def make_request():
                 json_object = json.loads(response.content)
                 result = json.dumps(json_object, indent=2)
             
-            # store new history
-            new_auth_history = response.headers.get('Set-Authorization-History')
-            if new_auth_history:
-                print(response.headers.get('Set-Authorization-History'))
-                resp_hist_list = BatchHistoryList(json_str=response.headers.get('Set-Authorization-History'))
-                batch_history_to_file(resp_hist_list, history_path, token["access_token"])
+            if not is_macaroon:
+                # store new history
+                new_auth_history = response.headers.get('Set-Authorization-History')
+                if new_auth_history:
+                    print(response.headers.get('Set-Authorization-History'))
+                    resp_hist_list = BatchHistoryList(json_str=response.headers.get('Set-Authorization-History'))
+                    batch_history_to_file(resp_hist_list, history_path, token["access_token"])
 
             # Record e2e latecy
             if send_time != 0 and recv_time != 0:

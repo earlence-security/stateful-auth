@@ -34,7 +34,7 @@ class BaseGrant(object):
 
     def generate_token(self, user=None, scope=None, grant_type=None,
                        expires_in=None, include_refresh_token=True,
-                       policy=None):
+                       policy=None, session=None):
         if grant_type is None:
             grant_type = self.GRANT_TYPE
         return self.server.generate_token(
@@ -45,6 +45,7 @@ class BaseGrant(object):
             expires_in=expires_in,
             include_refresh_token=include_refresh_token,
             policy=policy,
+            session=session,
         )
 
     def authenticate_token_endpoint_client(self):
