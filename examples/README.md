@@ -27,8 +27,10 @@ Open the file `/etc/nginx/sites-available/default` with something like `sudo vim
 
 Edit location to be
 ```
+large_client_header_buffers 4 64k;
 location / {
   proxy_pass http://127.0.0.1:5000;
+  client_max_body_size 0;
 }
 ```
 
