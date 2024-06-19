@@ -10,7 +10,7 @@ import argparse
 import random
 from uuid import uuid4
 from copy import deepcopy
-
+from datetime import datetime
 
 # Google Calendar events have 11 API endpoints. 10 if excluding the delete API.
 api_lst = ['get', 'list', 'insert', 'update', 'patch', 'move', 'import', 'watch', 'stop', 'quickAdd']
@@ -88,7 +88,6 @@ def generate_requests(n_iters, deny_ratio=0.2, model='stateful'):
             ids = [str(uuid4()) for _ in range(i)]
             # Fake ids in data.
             data = {'ids': ids}
-            # path.replace('<event_id>', id.hex)
             # Replace "<event_id>" with real ids in history.
             if model == 'stateful':
                 batch_history = {}
@@ -151,15 +150,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--token', type=str, default='token')
     parser.add_argument('--base-url', type=str, default='http://127.0.0.1:5000')
-    # parser.add_argument('--num-requests', type=int, default=300)
     parser.add_argument('--n-iters', type=int, default=30)
-    # parser.add_argument('--max-objects', type=int, default=10)
-    # parser.add_argument('--step', type=int, default=1)
     parser.add_argument('--deny-ratio', type=float, default='0.2')
-    parser.add_argument('--model', type=str, default='stateful')
+    parser.add_argument('--mode', type=str, default='stateful')
     args = parser.parse_args()
     
-    reqs = generate_requests(args.n_iters, args.deny_ratio, args.model)
+    reqs = generate_requests(args.n_iters, args.deny_ratio, args.mode)
     # with open('reqs.json', 'w') as f:
     # json.dump(reqs, f, indent=4)
 
@@ -167,8 +163,8 @@ def main():
     #     reqs = json.load(f)
 
     latency = measure_latency(args.base_url, args.token, reqs)
-
-    with open(f'latency_{args.model}.csv', 'w') as f:
+    suffix = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    with open(f'latency_{args.mode}_{suffix}.csv', 'w') as f:
         f.write('num_objects, method,path,latency\n')
         for (i, path, method, _, _), l in zip(reqs, latency):
             f.write(f'{i},{method},{path},{l}\n')
