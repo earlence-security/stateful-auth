@@ -99,31 +99,6 @@ def generate_requests(n_iters, deny_ratio=0.2, model='stateful'):
                 reqs.append((i, path, method, json.dumps(data), batch_history))
             else:
                 reqs.append((i, path, method, json.dumps(data), None))
-
-    # Option 2: measure the latency of every single endpoint
-    # ids = []
-    # num_requests_each_api = num_requests // len(apis)
-    # for i in range(num_requests):
-    #     r = random.random()
-    #     id = uuid4()
-    #     path, method = apis[i // num_requests_each_api]
-    #     if '<event_id>' in path:
-    #         path = path.replace('<event_id>', str(id))
-    #         data = None
-    #     else:
-    #         data = {'eventId': str(id)}
-    #     history = fake_history_entries.copy()
-    #     if r < deny_ratio:
-    #         history.remove({
-    #             "api": "/api/events",          # insert
-    #             "method": "POST",
-    #             "counter": 0,
-    #             "timestamp": 1705279436.833235
-    #         })
-    #     for e in history:
-    #         e["api"] = e["api"].replace('<event_id>', str(id))
-    #     reqs.append((id, path, method, json.dumps(data), history))
-    #     ids.append(id)
     return reqs
 
 
@@ -136,15 +111,21 @@ def measure_latency(base_url, token, reqs):
             'Content-Type': 'application/json',
         }
         start_time = time.time()
-        # print(f'{method} {path} {data} {headers}')
-        # print(f"Data size: {len(data)}")
-        # print(f"Header size: {len(headers['Authorization-History'])}")
         r = requests.request(method, f'{base_url}{path}', data=data, headers=headers)
         end_time = time.time()
         # Convert to ms
         latency.append((end_time - start_time) * 1000)
     return latency
 
+def eval_latency(latency_map, warmup_steps=5):
+    print('------------------Average Latency------------------')
+    print('   NumObjs          Average End-to-End Latency(ms) ')
+    print('---------------------------------------------------')
+    for i, latencies in latency_map.items():
+        if len(latencies) <= warmup_steps:
+            raise ValueError('Not enough samples')
+        print(f'{i:10} {sum(latencies[warmup_steps:])/len(latencies[warmup_steps]):30.2f}')
+        print('---------------------------------------------------')
 
 def main():
     parser = argparse.ArgumentParser()
@@ -163,12 +144,18 @@ def main():
     #     reqs = json.load(f)
 
     latency = measure_latency(args.base_url, args.token, reqs)
+    latency_map = {}
     suffix = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     with open(f'latency_{args.mode}_{suffix}.csv', 'w') as f:
         f.write('num_objects, method,path,latency\n')
         for (i, path, method, _, _), l in zip(reqs, latency):
+            # Write to csv
             f.write(f'{i},{method},{path},{l}\n')
-
+            # Add to latency map
+            if i not in latency_map:
+                latency_map[i] = []
+            latency_map[i].append(l)
+    eval_latency(latency_map)
 
 if __name__ == '__main__':
     main()
