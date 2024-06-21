@@ -22,7 +22,7 @@ class BatchHistoryList:
                     self.entries[historylist.obj_id] = historylist
             else:
                 raise ValueError("historylists should be a list of HistoryList objects")
-        elif json_str:
+        elif json_str is not None:
             bhl_dict = json.loads(json_str)
             for obj_id, historylist_dict in bhl_dict.items():
                 currHistoryList = HistoryList(obj_id, json.dumps(historylist_dict))

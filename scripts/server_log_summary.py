@@ -30,7 +30,7 @@ def main():
     print('---------------------------------Server-side Latency Breakdown---------------------------------')
     print('NumObjs                    ', ''.join([f'{str(i):>10}' for i in num_objects]))
     print('-----------------------------------------------------------------------------------------------')
-    print('Request Total Time(ms)     ', ''.join([f'{breakdown_agg["request_total_time"][i]:10.2f}' for i in range(len(num_objects))]))
+    print('Server-side Total Time(ms) ', ''.join([f'{breakdown_agg["request_total_time"][i]:10.2f}' for i in range(len(num_objects))]))
     print('-----------------------------------------------------------------------------------------------')
     print('Token Validation Time(ms)  ', ''.join([f'{breakdown_agg["token_validation_time"][i]:10.2f}' for i in range(len(num_objects))]))
     print('-----------------------------------------------------------------------------------------------')

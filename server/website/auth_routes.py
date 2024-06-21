@@ -189,7 +189,7 @@ def authorize():
             return redirect('/')
         # skip policy check if macaroon
         if policy != "macaroon":
-            if policy not in client.client_metadata.get("policy_hashes"):
+            if not (((policy is None) and (not client.client_metadata.get("policy_hashes"))) or (policy in client.client_metadata.get("policy_hashes"))):
                 return UnregisteredPolicyError().error, 403
 
         try:
@@ -227,3 +227,4 @@ ALLOWED_EXTENSIONS = {'wasm'}
 def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
