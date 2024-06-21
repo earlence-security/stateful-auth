@@ -4,18 +4,22 @@ import pandas as pd
 def get_breakdown_data(filepath, num_objects, warmup_steps=5):
     breakdown_df = pd.read_json(filepath)
     breakdown_agg = {
-        "request_total_time": [],
         "token_validation_time": [],
         "history_validation_time": [],
         "policy_execution_time": [],
         "history_update_time": [],
         "resource_api_time": [],
     }
+    total_time = []
     for n in num_objects:
         d = breakdown_df[breakdown_df['history_length'] == n * 10]
+        t = 0
         for k in breakdown_agg.keys():
             if k in d.columns:
                 breakdown_agg[k].append(d.iloc[warmup_steps:][k].mean() * 1000)
+                t += d.iloc[warmup_steps:][k].mean() * 1000
+        total_time.append(t)
+    breakdown_agg.update({"total_time": total_time})
     return breakdown_agg
 
 def main():
@@ -30,15 +34,17 @@ def main():
     print('---------------------------------Server-side Latency Breakdown---------------------------------')
     print('NumObjs                    ', ''.join([f'{str(i):>10}' for i in num_objects]))
     print('-----------------------------------------------------------------------------------------------')
-    print('Server-side Total Time(ms) ', ''.join([f'{breakdown_agg["request_total_time"][i]:10.2f}' for i in range(len(num_objects))]))
-    print('-----------------------------------------------------------------------------------------------')
     print('Token Validation Time(ms)  ', ''.join([f'{breakdown_agg["token_validation_time"][i]:10.2f}' for i in range(len(num_objects))]))
     print('-----------------------------------------------------------------------------------------------')
     print('History Validation Time(ms)', ''.join([f'{breakdown_agg["history_validation_time"][i]:10.2f}' for i in range(len(num_objects))]))
     print('-----------------------------------------------------------------------------------------------')
     print('Policy Execution Time(ms)  ', ''.join([f'{breakdown_agg["policy_execution_time"][i]:10.2f}' for i in range(len(num_objects))]))
     print('-----------------------------------------------------------------------------------------------')
+    print('Resource API Time(ms)      ', ''.join([f'{breakdown_agg["resource_api_time"][i]:10.2f}' for i in range(len(num_objects))]))
+    print('-----------------------------------------------------------------------------------------------')
     print('History Update Time(ms)    ', ''.join([f'{breakdown_agg["history_update_time"][i]:10.2f}' for i in range(len(num_objects))]))
+    print('-----------------------------------------------------------------------------------------------')
+    print('Total Time(ms)             ', ''.join([f'{breakdown_agg["total_time"][i]:10.2f}' for i in range(len(num_objects))]))
     print('-----------------------------------------------------------------------------------------------')
 
 if __name__ == "__main__":
