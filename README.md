@@ -1,7 +1,8 @@
 # StatefulAuth
 ### Stateful Least Privilege Authorization for the Cloud
 ---
-StatefulAuth is an authorization library built on top of Authlib[1] that enables (1) a client app developer (and their security team) to express the minimum privilege they need and (2) the service developer to enforce these requirements.
+
+StatefulAuth is an authorization library built on top of [Authlib](https://authlib.org/) that enables (1) a client app developer (and their security team) to express the minimum privilege they need and (2) the service developer to enforce these requirements.
 
 ## Repository Organization
 
@@ -26,4 +27,5 @@ stateful-auth/
 ## Contact
 
 Luoxi Meng (lumeng@ucsd.edu)
+
 Leo Cao (z2cao@ucsd.edu)
