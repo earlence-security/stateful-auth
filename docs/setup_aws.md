@@ -1,4 +1,4 @@
-# setting up EC2 servers to run measurements
+# Setting up EC2 servers to run measurements
 
 ## Launching instance
 Launch instance normally, only special thing is in Network settings, select launch-wizard-3.
@@ -15,7 +15,7 @@ This allows inbound http and https traffic
 ## setting up gunicorn and nginx
 Click on Connect -> SSH Client -> SSH into EC2
 
-pip install all the required packages, and check if app is working locally
+Install all the required packages, and check if app is working locally. See [link to basic test] for details.
 
 `sudo apt-get install nginx` to install nginx
 
@@ -23,9 +23,8 @@ to test if working: `sudo systemctl start nginx` and `sudo systemctl enable ngin
 
 Find the public IPv4 address of server from the Connect page of EC2, go to it using browser, see if nginx page show up
 
-Open the file `/etc/nginx/sites-available/default` with something like `sudo vim /etc/nginx/sites-available/default` 
+Open the file `/etc/nginx/sites-available/default` with something like `sudo vim /etc/nginx/sites-available/default` to include:
 
-Edit location to be
 ```
 large_client_header_buffers 4 64k;
 location / {
@@ -33,6 +32,9 @@ location / {
   client_max_body_size 0;
 }
 ```
+
+`nginx` will forward the incoming requests to the server listening to port 5000.
+We allow the request body to be arbitrarily long.
 
 run `sudo systemctl restart nginx`
 

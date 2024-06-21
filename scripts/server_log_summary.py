@@ -27,7 +27,6 @@ def main():
 
     num_objects = [int(i) for i in args.num_objects.split(",")]
     breakdown_agg = get_breakdown_data(args.file, num_objects, args.warmup_steps)
-    print(breakdown_agg)
     print('---------------------------------Server-side Latency Breakdown---------------------------------')
     print('NumObjs                    ', ''.join([f'{str(i):>10}' for i in num_objects]))
     print('-----------------------------------------------------------------------------------------------')
