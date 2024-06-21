@@ -36,6 +36,7 @@ oauth.register(
 )
 
 policy_dict = build_policy_decription_dict()
+policy_dict.update({'': 'No Policy, for vanilla OAuth 2.0'})
 history_path = app.config['HISTORY_DIRECTORY']
 is_macaroon = app.config['MACAROON']
 if not os.path.exists(history_path):
