@@ -36,7 +36,7 @@ oauth.register(
 )
 
 policy_dict = build_policy_decription_dict()
-policy_dict.update({'': 'No Policy, for vanilla OAuth 2.0'})
+policy_dict.update({'null': 'No Policy, for vanilla OAuth 2.0'})
 history_path = app.config['HISTORY_DIRECTORY']
 is_macaroon = app.config['MACAROON']
 if not os.path.exists(history_path):
@@ -55,7 +55,10 @@ def login():
     
     selected_option = request.form.get('selected_option')
     redirect_uri = url_for('auth', _external=True)
-    return oauth.testClient.authorize_redirect(app.config['REDIRECT_URI'], 
+    if selected_option == 'null':
+        return oauth.testClient.authorize_redirect(app.config['REDIRECT_URI'])
+    else:
+        return oauth.testClient.authorize_redirect(app.config['REDIRECT_URI'], 
                                                policy_hash=selected_option)
 
 
