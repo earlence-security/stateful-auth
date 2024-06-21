@@ -90,7 +90,7 @@ def make_request():
     token = session.get('token')
     if not token:
         return redirect('/')
-    policy = policy_dict[token["policy"]]
+    policy = policy_dict[token.get('policy', 'null')]
     result = ""
     if request.method == 'POST':
         selected_api = request.form.get('api_option')
