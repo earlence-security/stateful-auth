@@ -124,10 +124,11 @@ def eval_latency(latency_map, warmup_steps=5):
     for i, latencies in latency_map.items():
         if len(latencies) <= warmup_steps:
             raise ValueError('Not enough samples')
-        print(f'{i:10} {sum(latencies[warmup_steps:])/len(latencies[warmup_steps]):30.2f}')
+        print(f'{i:10} {sum(latencies[warmup_steps:])/len(latencies[warmup_steps:]):30.2f}')
         print('---------------------------------------------------')
 
 def main():
+    t = time.time()
     parser = argparse.ArgumentParser()
     parser.add_argument('--token', type=str, default='token')
     parser.add_argument('--base-url', type=str, default='http://127.0.0.1:5000')
@@ -156,6 +157,7 @@ def main():
                 latency_map[i] = []
             latency_map[i].append(l)
     eval_latency(latency_map)
+    print("Runtime:", f"{(time.time() - t) * 1000:.2f} ms")
 
 if __name__ == '__main__':
     main()
