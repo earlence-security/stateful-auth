@@ -13,3 +13,4 @@ INTEGRITY_CHECK = os.environ.get('INTEGRITY_CHECK', 'hmac')
 ENABLE_STATEFUL_AUTH = os.environ.get('ENABLE_STATEFUL_AUTH', 'True').lower() == 'true'
 ENABLE_LOGGING = os.environ.get('ENABLE_LOGGING', 'True').lower() == 'true'
 MACAROON = os.environ.get('MACAROON', 'False').lower() == 'true'
+EVAL = os.environ.get('EVAL', 'False').lower() == 'true'
