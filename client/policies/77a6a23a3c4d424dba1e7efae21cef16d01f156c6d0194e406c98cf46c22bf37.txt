@@ -1,0 +1,1 @@
+Only allow modifying the events created with the same token; updated for batch request.

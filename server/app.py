@@ -18,10 +18,8 @@ app = create_app({
     'SECRET_KEY': 'secret',
     'OAUTH2_REFRESH_TOKEN_GENERATOR': True,
     'SQLALCHEMY_TRACK_MODIFICATIONS': False,
-    'SQLALCHEMY_DATABASE_URI': f'sqlite:////{cwd}/db.sqlite',
-    'ENABLE_STATEFUL_AUTH': True,
+    'SQLALCHEMY_DATABASE_URI': 'sqlite://',
     'UPLOAD_FOLDER': os.path.join(cwd, 'policies'),
     'UPDATE_PROGRAM_FOLDER': os.path.join(cwd, 'update_program'),
-    'ENABLE_LOGGING': True,
-    'MACAROON': False,
+    'UPDATE_PROGRAM_NAME': 'update_program.wasm',
 })

@@ -1,0 +1,1 @@
+when accessing the /emails API, Token can only delete the emails it created in the past.

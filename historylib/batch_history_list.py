@@ -1,7 +1,7 @@
 # defines a list of historylist to send over wire
 
 import time
-import json
+import ujson as json
 from .history import History
 from .history_list import HistoryList
 import hashlib
@@ -16,10 +16,13 @@ class BatchHistoryList:
     def __init__(self, historylists=None, json_str=None):
         # A dict of (obj_id, historylist)
         self.entries = {}
-        if historylists != None:
-            for historylist in historylists:
-                self.entries[historylist.obj_id] = historylist
-        elif json_str:
+        if historylists and len(historylists) > 0:
+            if isinstance(historylists[0], HistoryList):
+                for historylist in historylists:
+                    self.entries[historylist.obj_id] = historylist
+            else:
+                raise ValueError("historylists should be a list of HistoryList objects")
+        elif json_str is not None:
             bhl_dict = json.loads(json_str)
             for obj_id, historylist_dict in bhl_dict.items():
                 currHistoryList = HistoryList(obj_id, json.dumps(historylist_dict))
@@ -40,7 +43,7 @@ class BatchHistoryList:
     def to_json(self):
         entries_dict = {}
         for k, v in self.entries.items():
-            entries_dict.update(v.to_dict())
+            entries_dict.update({k: v.to_dict()})
         return json.dumps(entries_dict)
     
     def get_num_objects(self):

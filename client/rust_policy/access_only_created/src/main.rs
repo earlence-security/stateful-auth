@@ -40,15 +40,20 @@ fn main() {
             return
         }
         // Check history if modifying or delete an existing event.
+        // Only return true if all the events are created w/ this token.
         for (_obj_id, history) in parsed_hist {
+            let mut found = false;
             for entry in history {
                 if entry.method == "POST" && entry.api == "/api/events" {
-                    println!("Accept");
-                    return
+                    found = true;
                 }
             }
+            if found == false {
+                println!("Deny");
+                return
+            }
         }
-        println!("Deny");
+        println!("Accept");
     } else {
         println!("Accept");
     }

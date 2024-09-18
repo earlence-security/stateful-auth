@@ -57,10 +57,6 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
     config = WasiConfig()
     if not history_str:
         history_str = '{}'
-    #print("here1")
-    #print(history_str)
-    #print(request_str)
-    #print(policy_hash)
     config.argv = (policy_hash, request_str, history_str)
     config.preopen_dir(".", "/")
     # print("running policy with hash: " + policy_hash)
@@ -70,9 +66,6 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
         err_log = os.path.join(chroot, "err.log")
         config.stdout_file = out_log
         config.stderr_file = err_log
-
-        # # LOGGING
-        # policy_execution_start = time.time()
 
         # Store is a unit of isolation in wasmtime
         # containes wasm objects
@@ -86,11 +79,10 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
 
         # _start is the default wasi main function
         start = instance.exports(store)["_start"]
-
+        # memory = instance.exports(store)["memory"]
 
         # Measure memory before running the WebAssembly program
-        start_memory = measure_memory()
-
+        # start_memory = measure_memory()
         try:
             start(store)
         except Exception as e:
@@ -98,15 +90,11 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
             raise
 
         # Measure memory after running the WebAssembly program
-        end_memory = measure_memory()
+        # end_memory = measure_memory()
 
         # Calculate memory usage
-        memory_usage = end_memory - start_memory
-        print(f"Memory usage: {memory_usage} bytes")
-
-        # # LOGGING
-        # policy_execution_time = time.time() - policy_execution_start
-
+        # memory_usage = end_memory - start_memory
+        # print(f"Memory usage: {memory_usage} bytes")
         with open(out_log) as f:
             result = f.read()
             # print("Policy returned: " + result)
@@ -116,4 +104,3 @@ def run_policy(linker, policy_module, policy_hash, request_str, history_str):
                 return True
             else:
                 return False
-        

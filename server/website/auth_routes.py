@@ -189,12 +189,13 @@ def authorize():
             return redirect('/')
         # skip policy check if macaroon
         if policy != "macaroon":
-            if policy not in client.client_metadata.get("policy_hashes"):
+            if not (((policy is None) and (not client.client_metadata.get("policy_hashes"))) or (policy in client.client_metadata.get("policy_hashes"))):
                 return UnregisteredPolicyError().error, 403
 
         try:
             grant = authorization.get_consent_grant(end_user=user)
         except OAuth2Error as error:
+            print(error.error)
             return error.error, 403
         return render_template('authorize.html', user=user, grant=grant, policy=policy)
     if not user and 'username' in request.form:
@@ -226,3 +227,4 @@ ALLOWED_EXTENSIONS = {'wasm'}
 def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+

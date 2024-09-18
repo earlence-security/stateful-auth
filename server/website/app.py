@@ -4,12 +4,13 @@ from flask import Flask, g
 from .models import db
 from .oauth2 import config_oauth
 from .auth_routes import auth_bp
-from .resource_routes import resource_bp
+# HACK: import resource_bp from resource_routes_test.py for latency and tput measurement
+# from .resource_routes import resource_bp
 
 
 def create_app(config=None):
     app = Flask(__name__)
-
+    app.logger.setLevel('DEBUG')
     # load default configuration
     app.config.from_object('website.settings')
 
@@ -35,6 +36,11 @@ def setup_app(app):
     with app.app_context():
         db.create_all()
     config_oauth(app)
+
+    if app.config.get('ENABLE_STATEFUL_AUTH'):
+        from .resource_routes_eval import resource_bp
+    else:
+        from .resource_routes_eval_baseline import resource_bp
 
     app.register_blueprint(auth_bp, url_prefix='')
     app.register_blueprint(resource_bp, url_prefix="/api")

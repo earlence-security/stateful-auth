@@ -1,7 +1,7 @@
 # defines a single history data point
 
 import time
-import json
+import ujson as json
 
 class History:
 
